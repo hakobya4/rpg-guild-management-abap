@@ -1,0 +1,30 @@
+//Behavior Definition for ZI_RPG_Guild
+managed implementation in class zbp_i_rpg_guild unique;
+strict ( 2 );
+
+define behavior for ZI_RPG_Guild alias Guild
+persistent table zrpg_guild
+lock master
+authorization master ( instance )
+etag master LastChangedAt
+{
+  create;
+  update;
+  delete;
+
+  field ( readonly, numbering : managed ) GuildUUID;
+  field ( readonly ) CreatedAt, CreatedBy, LastChangedAt, LastChangedBy;
+  field ( mandatory ) GuildName;
+
+  mapping for zrpg_guild
+  {
+    GuildUUID = guild_uuid;
+    GuildName = guild_name;
+    HomeCity = home_city;
+    Reputation = reputation;
+    CreatedAt = created_at;
+    CreatedBy = created_by;
+    LastChangedAt = last_changed_at;
+    LastChangedBy = last_changed_by;
+  }
+}

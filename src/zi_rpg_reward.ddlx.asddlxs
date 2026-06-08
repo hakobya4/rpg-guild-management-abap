@@ -1,0 +1,36 @@
+@Metadata.layer: #CORE
+@UI.headerInfo: {
+  typeName: 'Reward',
+  typeNamePlural: 'Rewards',
+  title: { type: #STANDARD, value: 'RewardName' },
+  description: { type: #STANDARD, value: 'RewardType' }
+}
+annotate view ZC_RPG_Reward with
+{
+  @UI.facet: [
+    {
+      id: 'Reward',
+      purpose: #STANDARD,
+      type: #IDENTIFICATION_REFERENCE,
+      label: 'Reward',
+      position: 10
+    }
+  ]
+
+  @UI.lineItem: [ { position: 10, label: 'Reward Name' } ]
+  @UI.identification: [ { position: 10, label: 'Reward Name' } ]
+  @UI.selectionField: [ { position: 10 } ]
+  RewardName;
+
+  @UI.lineItem: [ { position: 20, label: 'Type' } ]
+  @UI.identification: [ { position: 20, label: 'Type' } ]
+  RewardType;
+
+  @UI.lineItem: [ { position: 30, label: 'Gold' } ]
+  @UI.identification: [ { position: 30, label: 'Gold' } ]
+  GoldAmount;
+
+  @UI.lineItem: [ { position: 40, label: 'Rarity' } ]
+  @UI.identification: [ { position: 40, label: 'Rarity' } ]
+  ItemRarity;
+}

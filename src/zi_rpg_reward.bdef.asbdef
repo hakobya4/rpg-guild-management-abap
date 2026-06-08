@@ -1,0 +1,25 @@
+// Behavior Definition for ZI_RPG_Reward
+managed implementation in class zbp_i_rpg_reward unique;
+strict ( 2 );
+
+define behavior for ZI_RPG_Reward alias Reward
+persistent table zrpg_reward
+lock master
+authorization master ( instance )
+{
+  create;
+  update;
+  delete;
+
+  field ( readonly, numbering : managed ) RewardUUID;
+  field ( mandatory ) RewardName, RewardType;
+
+  mapping for zrpg_reward
+  {
+    RewardUUID = reward_uuid;
+    RewardName = reward_name;
+    RewardType = reward_type;
+    GoldAmount = gold_amount;
+    ItemRarity = item_rarity;
+  }
+}
