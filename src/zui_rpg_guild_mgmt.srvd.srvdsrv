@@ -1,8 +1,0 @@
-@EndUserText.label: 'RPG Guild Management Service'
-define service ZUI_RPG_GUILD_MGMT {
-  expose ZC_RPG_Guild           as Guilds;
-  expose ZC_RPG_Adventurer      as Adventurers;
-  expose ZC_RPG_Quest           as Quests;
-  expose ZC_RPG_Reward          as Rewards;
-  expose ZC_RPG_AdventurerQuest as AdventurerQuests;
-}
