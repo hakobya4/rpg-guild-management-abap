@@ -15,6 +15,7 @@ define behavior for ZC_RPG_ADVENTURER alias Adventurer
   use action Prepare;
   use action joinGuild;
   use action acceptQuest;
+  use action completeQuest;
 
   // Level and XP are managed by the application (defaults + quest rewards)
   field ( readonly ) AdventurerLevel, AdventurerXp;

@@ -48,24 +48,4 @@ annotate view ZC_RPG_QUEST with
   @UI.lineItem:       [{ position: 50, label: 'Description' }]
   @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 30, label: 'Description' }]
   Description;
-
-  @UI.identification: [{
-    position:   60,
-    label:      'Accept Quest',
-    type:       #FOR_ACTION,
-    dataAction: 'acceptQuest'
-  },
-  {
-    position:   70,
-    label:      'Complete Quest',
-    type:       #FOR_ACTION,
-    dataAction: 'completeQuest'
-  }]
-  @UI.lineItem: [{
-    position:   60,
-    label:      'Complete Quest',
-    type:       #FOR_ACTION,
-    dataAction: 'completeQuest'
-  }]
-  QuestId;
 }

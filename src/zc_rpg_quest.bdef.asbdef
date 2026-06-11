@@ -14,6 +14,7 @@ define behavior for ZC_RPG_QUEST alias Quest
   use action Resume;
   use action Prepare;
 
-  use action acceptQuest;
-  use action completeQuest;
+  // acceptQuest / completeQuest are intentionally NOT exposed here:
+  // the quest workflow is driven from the Adventurer entity, which
+  // delegates to the Quest interface actions internally.
 }

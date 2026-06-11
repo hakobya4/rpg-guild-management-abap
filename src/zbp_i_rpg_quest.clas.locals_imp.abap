@@ -7,9 +7,7 @@ CLASS lhc_Quest DEFINITION INHERITING FROM cl_abap_behavior_handler.
     CONSTANTS:
       c_status_open        TYPE zrpg_quest-status VALUE 'OPEN',
       c_status_in_progress TYPE zrpg_quest-status VALUE 'IN_PROGRESS',
-      c_status_completed   TYPE zrpg_quest-status VALUE 'COMPLETED',
-      " Every 10 XP the adventurer gains one level; the remainder is kept
-      c_xp_per_level       TYPE i                 VALUE 10.
+      c_status_completed   TYPE zrpg_quest-status VALUE 'COMPLETED'.
 
     METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
       IMPORTING REQUEST requested_authorizations FOR Quest RESULT result.
@@ -17,7 +15,9 @@ CLASS lhc_Quest DEFINITION INHERITING FROM cl_abap_behavior_handler.
     METHODS acceptQuest FOR MODIFY
       IMPORTING keys FOR ACTION Quest~acceptQuest RESULT result.
 
-    " Applies XP and levels up the adventurer directly
+    " Validates and sets the COMPLETED status. XP awarding and level-up
+    " are done by the caller (Adventurer~completeQuest) to avoid a
+    " cyclic cross-BO modification back into the Adventurer BO.
     METHODS completeQuest FOR MODIFY
       IMPORTING keys FOR ACTION Quest~completeQuest RESULT result.
 
@@ -211,18 +211,8 @@ CLASS lhc_Quest IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      " ── Step 3: Only the assigned adventurer may complete it ───
-      " The reward always goes to the adventurer stored on the quest.
-      SELECT SINGLE
-        adventurer_id,
-        adventurer_name,
-        adventurer_level,
-        adventurer_xp
-      FROM zrpg_adventurer
-      WHERE adventurer_id = @<quest>-AdventurerId
-      INTO @DATA(adventurer_data).
-
-      IF <quest>-AdventurerId IS INITIAL OR sy-subrc <> 0.
+      " ── Step 3: An adventurer must be assigned ────────────────
+      IF <quest>-AdventurerId IS INITIAL.
         APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
         APPEND VALUE #(
           %tky                  = <quest>-%tky
@@ -235,53 +225,22 @@ CLASS lhc_Quest IMPLEMENTATION.
       ENDIF.
 
       " ── Step 4: Mark quest as completed ───────────────────────
+      " XP awarding and level-up happen in Adventurer~completeQuest.
       APPEND VALUE #(
         %tky   = <quest>-%tky
         Status = c_status_completed
       ) TO quest_updates.
 
-      " ── Step 5: Calculate new XP and level ────────────────────
-      " Every 10 XP grants one level; the remainder stays as XP.
-      DATA(total_xp)      = adventurer_data-adventurer_xp + <quest>-XpReward.
-      DATA(levels_gained) = total_xp DIV c_xp_per_level.
-      DATA(new_level)     = adventurer_data-adventurer_level + levels_gained.
-      DATA(new_xp)        = total_xp MOD c_xp_per_level.
-
-      DATA(level_up_text) = ||.
-      IF levels_gained >= 10.
-        level_up_text = | 🎉 Level up! { adventurer_data-adventurer_name }|
-                     && | is now level { new_level }!|.
-      ENDIF.
-
-      " ── Step 6: Update adventurer via cross-BO EML ────────────
-      MODIFY ENTITIES OF zi_rpg_adventurer
-        ENTITY Adventurer
-          UPDATE FIELDS ( AdventurerXp AdventurerLevel )
-          WITH VALUE #( (
-            AdventurerId    = adventurer_data-adventurer_id
-            AdventurerXp    = new_xp
-            AdventurerLevel = new_level
-          ) )
-        REPORTED DATA(reported_adv)
-        FAILED   DATA(failed_adv).
-
-      " ── Step 7: Success message with XP and level info ────────
-      DATA(success_text) = |Quest '{ <quest>-QuestName }' completed!|
-                        && | { adventurer_data-adventurer_name }|
-                        && | gained { <quest>-XpReward } XP.|
-                        && | Remaining XP: { new_xp }.|
-                        && level_up_text.
-
       APPEND VALUE #(
         %tky = <quest>-%tky
         %msg = new_message_with_text(
                  severity = if_abap_behv_message=>severity-success
-                 text     = success_text )
+                 text     = |Quest '{ <quest>-QuestName }' completed!| )
       ) TO reported-Quest.
 
     ENDLOOP.
 
-    " ── Step 8: Apply quest status updates ────────────────────
+    " ── Step 5: Apply quest status updates ────────────────────
     IF quest_updates IS NOT INITIAL.
       MODIFY ENTITIES OF zi_rpg_quest IN LOCAL MODE
         ENTITY Quest
@@ -296,7 +255,7 @@ CLASS lhc_Quest IMPLEMENTATION.
         BASE ( failed-Quest ) failed_quest_update-Quest ).
     ENDIF.
 
-    " ── Step 9: Fill result ───────────────────────────────────
+    " ── Step 6: Fill result ───────────────────────────────────
     READ ENTITIES OF zi_rpg_quest IN LOCAL MODE
       ENTITY Quest ALL FIELDS
         WITH CORRESPONDING #( keys )
@@ -315,6 +274,7 @@ CLASS lhc_Quest IMPLEMENTATION.
         FIELDS ( RequiredLevel XpReward )
         WITH CORRESPONDING #( keys )
       RESULT DATA(quests).
+
 
     LOOP AT quests ASSIGNING FIELD-SYMBOL(<quest>).
 
@@ -369,5 +329,7 @@ CLASS lhc_Quest IMPLEMENTATION.
 
   ENDMETHOD.
 
+
 ENDCLASS.
+
 

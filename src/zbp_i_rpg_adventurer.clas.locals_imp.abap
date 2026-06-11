@@ -4,6 +4,9 @@
 CLASS lhc_Adventurer DEFINITION INHERITING FROM cl_abap_behavior_handler.
   PRIVATE SECTION.
 
+    " Every 10 XP the adventurer gains one level; the remainder is kept
+    CONSTANTS c_xp_per_level TYPE i VALUE 10.
+
     METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
       IMPORTING REQUEST requested_authorizations FOR Adventurer RESULT result.
 
@@ -18,6 +21,8 @@ CLASS lhc_Adventurer DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR Adventurer~setDefaultClass.
     METHODS acceptQuest FOR MODIFY
       IMPORTING keys FOR ACTION Adventurer~acceptQuest RESULT result.
+    METHODS completeQuest FOR MODIFY
+      IMPORTING keys FOR ACTION Adventurer~completeQuest RESULT result.
 
 ENDCLASS.
 
@@ -345,6 +350,161 @@ CLASS lhc_Adventurer IMPLEMENTATION.
     ENDLOOP.
 
     " ── Step 6: Return updated adventurer ───────────────────────
+    READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
+      ENTITY Adventurer ALL FIELDS
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(result_adventurers).
+
+    result = VALUE #( FOR adv IN result_adventurers
+                      ( %tky   = adv-%tky
+                        %param = CORRESPONDING #( adv ) ) ).
+  ENDMETHOD.
+
+  METHOD completeQuest.
+    " ── Step 1: Read adventurer data ──────────────────────────────
+    READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
+      ENTITY Adventurer
+        FIELDS ( AdventurerName )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(adventurers).
+
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
+
+      READ TABLE adventurers ASSIGNING FIELD-SYMBOL(<adv>)
+        WITH KEY %tky = <key>-%tky.
+      CHECK sy-subrc = 0.
+
+      " ── Step 2: Validate QuestId was provided ──────────────────
+      DATA(lv_quest_id) = <key>-%param-QuestId.
+      IF lv_quest_id IS INITIAL.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky                  = <adv>-%tky
+          %action-completeQuest = if_abap_behv=>mk-on
+          %msg                  = new_message_with_text(
+                                    severity = if_abap_behv_message=>severity-error
+                                    text     = 'Please select a quest.' )
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
+
+      " ── Step 3: Quest must belong to this adventurer ───────────
+      " Only the adventurer who accepted the quest may complete it.
+      SELECT SINGLE quest_name, status, adventurer_id, xp_reward
+        FROM zrpg_quest
+        WHERE quest_id = @lv_quest_id
+        INTO @DATA(quest_data).
+
+      IF sy-subrc <> 0.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky                  = <adv>-%tky
+          %action-completeQuest = if_abap_behv=>mk-on
+          %msg                  = new_message_with_text(
+                                    severity = if_abap_behv_message=>severity-error
+                                    text     = 'Quest not found. Please select a valid quest.' )
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
+
+      IF quest_data-adventurer_id IS INITIAL.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky                  = <adv>-%tky
+          %action-completeQuest = if_abap_behv=>mk-on
+          %msg                  = new_message_with_text(
+                                    severity = if_abap_behv_message=>severity-error
+                                    text     = |Quest '{ quest_data-quest_name }' has not|
+                                            && | been accepted yet.| )
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
+
+      IF quest_data-adventurer_id <> <adv>-AdventurerId.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky                  = <adv>-%tky
+          %action-completeQuest = if_abap_behv=>mk-on
+          %msg                  = new_message_with_text(
+                                    severity = if_abap_behv_message=>severity-error
+                                    text     = |Quest '{ quest_data-quest_name }' belongs to|
+                                            && | another adventurer. Only the adventurer who|
+                                            && | accepted it can complete it.| )
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
+
+      " ── Step 4: Delegate the status change to the Quest BO ─────
+      " Quest~completeQuest validates IN_PROGRESS and sets COMPLETED.
+      MODIFY ENTITIES OF zi_rpg_quest
+        ENTITY Quest
+          EXECUTE completeQuest
+          FROM VALUE #( ( QuestId = lv_quest_id ) )
+        FAILED   DATA(quest_failed)
+        REPORTED DATA(quest_reported).
+
+      " Relay quest messages to the adventurer UI
+      LOOP AT quest_reported-Quest ASSIGNING FIELD-SYMBOL(<quest_msg>).
+        IF <quest_msg>-%msg IS BOUND.
+          APPEND VALUE #( %tky = <adv>-%tky
+                          %msg = <quest_msg>-%msg ) TO reported-Adventurer.
+        ENDIF.
+      ENDLOOP.
+
+      IF quest_failed-Quest IS NOT INITIAL.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        CONTINUE.
+      ENDIF.
+
+      " ── Step 5: Award XP — every 10 XP grants one level ────────
+      " Read from the transactional buffer so completing several
+      " quests in one request accumulates correctly.
+      READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
+        ENTITY Adventurer
+          FIELDS ( AdventurerLevel AdventurerXp )
+          WITH VALUE #( ( %tky = <adv>-%tky ) )
+        RESULT DATA(current_stats).
+
+      READ TABLE current_stats ASSIGNING FIELD-SYMBOL(<stats>) INDEX 1.
+      CHECK sy-subrc = 0.
+
+      DATA(total_xp)      = <stats>-AdventurerXp + quest_data-xp_reward.
+      DATA(levels_gained) = total_xp DIV c_xp_per_level.
+      DATA(new_level)     = <stats>-AdventurerLevel + levels_gained.
+      DATA(new_xp)        = total_xp MOD c_xp_per_level.
+
+      MODIFY ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
+        ENTITY Adventurer
+          UPDATE FIELDS ( AdventurerLevel AdventurerXp )
+          WITH VALUE #( ( %tky            = <adv>-%tky
+                          AdventurerLevel = new_level
+                          AdventurerXp    = new_xp ) )
+        REPORTED DATA(rep_xp)
+        FAILED   DATA(fail_xp).
+
+      reported-Adventurer = CORRESPONDING #(
+        BASE ( reported-Adventurer ) rep_xp-Adventurer ).
+
+      " ── Step 6: Success message with XP and level info ─────────
+      DATA(level_up_text) = ||.
+      IF levels_gained > 0.
+        level_up_text = | 🎉 Level up! { <adv>-AdventurerName }|
+                     && | is now level { new_level }!|.
+      ENDIF.
+
+      APPEND VALUE #(
+        %tky = <adv>-%tky
+        %msg = new_message_with_text(
+                 severity = if_abap_behv_message=>severity-success
+                 text     = |{ <adv>-AdventurerName } gained|
+                         && | { quest_data-xp_reward } XP.|
+                         && | Remaining XP: { new_xp }.|
+                         && level_up_text )
+      ) TO reported-Adventurer.
+
+    ENDLOOP.
+
+    " ── Step 7: Return updated adventurer (new level/XP included) ─
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer ALL FIELDS
         WITH CORRESPONDING #( keys )
