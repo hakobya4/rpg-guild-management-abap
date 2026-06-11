@@ -11,18 +11,24 @@ define behavior for ZI_RPG_GUILD alias Guild
 {
   create;
   update;
-  delete;
+  // Precheck blocks deletion while adventurers are still members
+  delete ( precheck );
 
   draft action Activate optimized;
   draft action Discard;
   draft action Edit;
   draft action Resume;
-  draft determine action Prepare;
+  draft determine action Prepare
+  {
+    validation validateGuildName;
+  }
 
   field ( readonly, numbering : managed ) GuildId;
   field ( readonly ) CreatedAt, CreatedBy, LastChangedAt,
                      LastChangedBy, LocalLastChangedAt;
   field ( mandatory ) GuildName;
+
+  validation validateGuildName on save { create; field GuildName; }
 
   mapping for zrpg_guild
   {

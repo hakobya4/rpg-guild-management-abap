@@ -19,7 +19,7 @@ define behavior for ZI_RPG_QUEST alias Quest
   draft action Resume;
   draft determine action Prepare
   {
-    validation validateLevelRequirement;
+    validation validateQuestValues;
   }
 
   field ( readonly, numbering : managed ) QuestId;
@@ -27,10 +27,15 @@ define behavior for ZI_RPG_QUEST alias Quest
                      LastChangedBy, LocalLastChangedAt;
   field ( mandatory ) QuestName, RequiredLevel, XpReward;
 
-  action acceptQuest   parameter ZI_RPG_ACCEPT_QUEST_PARAM result [1] $self;
+  // Lifecycle fields are only changed by the actions below
+  field ( readonly ) Status, AdventurerId;
+
+  // Assigns the quest to an adventurer (rules: OPEN, unassigned, level check)
+  action acceptQuest   parameter ZI_RPG_ASSIGN_ADV_PARAM result [1] $self;
+  // Marks the quest COMPLETED and awards XP to the assigned adventurer
   action completeQuest result [1] $self;
 
-  validation validateLevelRequirement on save { field AdventurerId; }
+  validation validateQuestValues on save { create; field RequiredLevel, XpReward; }
   determination setInitialStatus on modify { create; }
 
   mapping for zrpg_quest

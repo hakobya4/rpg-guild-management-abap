@@ -14,7 +14,6 @@ CLASS lhc_Adventurer DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR ACTION Adventurer~joinGuild RESULT result.
     METHODS validateAdventurerName FOR VALIDATE ON SAVE
       IMPORTING keys FOR Adventurer~validateAdventurerName.
-    DATA lt_existing TYPE TABLE OF zrpg_adventurer.
     METHODS setDefaultClass FOR DETERMINE ON MODIFY
       IMPORTING keys FOR Adventurer~setDefaultClass.
     METHODS acceptQuest FOR MODIFY
@@ -166,54 +165,73 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         FIELDS ( AdventurerName )
         WITH CORRESPONDING #( keys )
       RESULT DATA(adventurers).
-    DATA(lv_count) = 0.
+
     " ── Step 2: Check each instance ───────────────────────────────
     LOOP AT adventurers ASSIGNING FIELD-SYMBOL(<adv>).
-      lv_count += 1.
-      IF <adv>-AdventurerName IS INITIAL.
 
+      DATA(lv_name) = <adv>-AdventurerName.
+
+      " Rule 1: name must not be empty
+      IF lv_name IS INITIAL.
         APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
-
-        APPEND VALUE #(
-          %tky                   = <adv>-%tky
-          %msg                   = new_message_with_text(
-                                     severity = if_abap_behv_message=>severity-error
-                                     text     = 'Adventurer name cannot be empty.' )
-          %element-AdventurerName = if_abap_behv=>mk-on
-        ) TO reported-Adventurer.
-
-      ELSEIF strlen( <adv>-AdventurerName ) <= 2.
-
-        " Optional — name must be at least 2 characters
-        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
-
         APPEND VALUE #(
           %tky                    = <adv>-%tky
           %msg                    = new_message_with_text(
                                       severity = if_abap_behv_message=>severity-error
-                                      text     = 'Adventurer name must be at least 3 characters.' )
+                                      text     = 'Adventurer name cannot be empty.' )
+          %element-AdventurerName = if_abap_behv=>mk-on
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
+
+      " Rule 2: name must not contain numbers
+      IF lv_name CA '0123456789'.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky                    = <adv>-%tky
+          %msg                    = new_message_with_text(
+                                      severity = if_abap_behv_message=>severity-error
+                                      text     = 'Adventurer name cannot contain numbers.' )
+          %element-AdventurerName = if_abap_behv=>mk-on
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
+
+      " Rule 3: name must contain at least 3 letters
+      DATA lv_letter_count TYPE i.
+      FIND ALL OCCURRENCES OF PCRE '[a-zA-Z]' IN lv_name
+        MATCH COUNT lv_letter_count.
+      IF lv_letter_count < 3.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky                    = <adv>-%tky
+          %msg                    = new_message_with_text(
+                                      severity = if_abap_behv_message=>severity-error
+                                      text     = 'Adventurer name must contain at least 3 letters.' )
+          %element-AdventurerName = if_abap_behv=>mk-on
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
+
+      " Rule 4: name must be unique (case-insensitive, ignoring this record)
+      SELECT SINGLE adventurer_id
+        FROM zrpg_adventurer
+        WHERE upper( adventurer_name ) = @( to_upper( lv_name ) )
+          AND adventurer_id          <> @<adv>-AdventurerId
+        INTO @DATA(lv_duplicate_id).
+
+      IF sy-subrc = 0.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky                    = <adv>-%tky
+          %msg                    = new_message_with_text(
+                                      severity = if_abap_behv_message=>severity-error
+                                      text     = |Adventurer name "{ lv_name }" already exists.| )
           %element-AdventurerName = if_abap_behv=>mk-on
         ) TO reported-Adventurer.
       ENDIF.
+
     ENDLOOP.
-    SELECT *
-      FROM zrpg_adventurer
-      WHERE adventurer_name = @<adv>-AdventurerName
-      INTO TABLE @lt_existing.
-
-    IF lt_existing IS NOT INITIAL.
-
-      APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
-
-      APPEND VALUE #(
-        %tky = <adv>-%tky
-        %msg = new_message_with_text(
-                 severity = if_abap_behv_message=>severity-error
-                 text     = |Adventurer name "{ <adv>-AdventurerName }" already exists.| )
-        %element-AdventurerName = if_abap_behv=>mk-on
-      ) TO reported-Adventurer.
-
-    ENDIF.
 
   ENDMETHOD.
 
@@ -256,23 +274,38 @@ CLASS lhc_Adventurer IMPLEMENTATION.
     " ── Step 1: Read adventurer data ──────────────────────────────
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer
-        FIELDS ( AdventurerId AdventurerName AdventurerLevel )
+        FIELDS ( AdventurerName AdventurerLevel )
         WITH CORRESPONDING #( keys )
       RESULT DATA(adventurers).
 
-    LOOP AT adventurers ASSIGNING FIELD-SYMBOL(<adv>).
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
 
-      " ── Step 2: Get QuestId from the action parameter ──────────
-      " %param is on the keys table — loop to find matching entry
-      DATA(lv_quest_id) = CONV sysuuid_x16( '' ).
-      LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
-        IF <key>-%tky = <adv>-%tky.
-          lv_quest_id = <key>-%param-QuestId.  " ← field from abstract entity
-          EXIT.
-        ENDIF.
-      ENDLOOP.
+      READ TABLE adventurers ASSIGNING FIELD-SYMBOL(<adv>)
+        WITH KEY %tky = <key>-%tky.
+      CHECK sy-subrc = 0.
+
+      " ── Step 2: Adventurer must be persisted before taking quests ─
+      " A draft that was never activated does not exist in the active
+      " table yet and therefore cannot accept quests.
+      SELECT SINGLE @abap_true
+        FROM zrpg_adventurer
+        WHERE adventurer_id = @<adv>-AdventurerId
+        INTO @DATA(lv_persisted).
+
+      IF <key>-%is_draft = if_abap_behv=>mk-on OR lv_persisted <> abap_true.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky                 = <adv>-%tky
+          %action-acceptQuest  = if_abap_behv=>mk-on
+          %msg                 = new_message_with_text(
+                                   severity = if_abap_behv_message=>severity-error
+                                   text     = 'Save the adventurer before accepting quests.' )
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
 
       " ── Step 3: Validate QuestId was provided ──────────────────
+      DATA(lv_quest_id) = <key>-%param-QuestId.
       IF lv_quest_id IS INITIAL.
         APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
@@ -284,76 +317,34 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      " ── Step 4: Read quest directly from DB ────────────────────
-      SELECT SINGLE quest_id, quest_name, status, required_level, xp_reward
-      FROM zrpg_quest
-      WHERE quest_id = @lv_quest_id
-      INTO @DATA(quest_data).
-
-      IF sy-subrc <> 0.
-        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
-        APPEND VALUE #(
-          %tky = <adv>-%tky
-          %msg = new_message_with_text(
-                   severity = if_abap_behv_message=>severity-error
-                   text     = 'Quest not found. Please select a valid quest.' )
-        ) TO reported-Adventurer.
-        CONTINUE.
-      ENDIF.
-
-      " ── Step 5: Quest must be OPEN ─────────────────────────────
-      IF quest_data-status <> 'OPEN'.
-        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
-        APPEND VALUE #(
-          %tky = <adv>-%tky
-          %msg = new_message_with_text(
-                   severity = if_abap_behv_message=>severity-error
-                   text     = |'{ quest_data-quest_name }' is no longer available.| )
-        ) TO reported-Adventurer.
-        CONTINUE.
-      ENDIF.
-
-      " ── Step 6: Level requirement check ────────────────────────
-      IF <adv>-AdventurerLevel < quest_data-required_level.
-        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
-        APPEND VALUE #(
-          %tky = <adv>-%tky
-          %msg = new_message_with_text(
-                   severity = if_abap_behv_message=>severity-error
-                   text     = |You must be level { quest_data-required_level }|
-                           && | to take this quest.|
-                           && | { <adv>-AdventurerName }|
-                           && | is currently level { <adv>-AdventurerLevel }.| )
-        ) TO reported-Adventurer.
-        CONTINUE.
-      ENDIF.
-
-      " ── Step 7: Cross-BO update — assign quest to adventurer ───
-      " Status and AdventurerId must NOT be readonly in ZI_RPG_QUEST BDEF
+      " ── Step 4: Delegate to the Quest BO action ────────────────
+      " All quest-side rules (OPEN status, level requirement, not yet
+      " assigned) live in one place: Quest~acceptQuest. The RAP lock
+      " on the quest instance serializes concurrent accept attempts.
       MODIFY ENTITIES OF zi_rpg_quest
         ENTITY Quest
-          UPDATE FIELDS ( Status AdventurerId )
-          WITH VALUE #( (
-            QuestId      = lv_quest_id
-            Status       = 'IN_PROGRESS'
-            AdventurerId = <adv>-AdventurerId
-          ) )
-        REPORTED DATA(rep_quest)
-        FAILED   DATA(fail_quest).
+          EXECUTE acceptQuest
+          FROM VALUE #( ( QuestId             = lv_quest_id
+                          %param-AdventurerId = <adv>-AdventurerId ) )
+        FAILED   DATA(quest_failed)
+        REPORTED DATA(quest_reported).
 
+      " ── Step 5: Relay quest messages to the adventurer UI ──────
+      LOOP AT quest_reported-Quest ASSIGNING FIELD-SYMBOL(<quest_msg>).
+        IF <quest_msg>-%msg IS BOUND.
+          APPEND VALUE #( %tky = <adv>-%tky
+                          %msg = <quest_msg>-%msg ) TO reported-Adventurer.
+        ENDIF.
+      ENDLOOP.
 
-      " ── Step 9: Success message ─────────────────────────────────
-      APPEND VALUE #(
-        %tky = <adv>-%tky
-        %msg = new_message_with_text(
-                 severity = if_abap_behv_message=>severity-success
-                 text     = |Quest '{ quest_data-quest_name }' accepted! ⚔️|
-                         && | XP Reward: { quest_data-xp_reward }.| )
-      ) TO reported-Adventurer.
+      IF quest_failed-Quest IS NOT INITIAL.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        CONTINUE.
+      ENDIF.
 
     ENDLOOP.
 
-    " ── Step 10: Return updated adventurer ──────────────────────
+    " ── Step 6: Return updated adventurer ───────────────────────
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer ALL FIELDS
         WITH CORRESPONDING #( keys )
@@ -364,3 +355,4 @@ CLASS lhc_Adventurer IMPLEMENTATION.
                         %param = CORRESPONDING #( adv ) ) ).
   ENDMETHOD.
 ENDCLASS.
+
