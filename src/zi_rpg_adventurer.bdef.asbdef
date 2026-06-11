@@ -1,0 +1,61 @@
+managed implementation in class ZBP_I_RPG_ADVENTURER unique;
+strict ( 2 );
+with draft;
+
+define behavior for ZI_RPG_ADVENTURER alias Adventurer
+persistent table zrpg_adventurer
+draft table zrpg_dadventurer
+lock master total etag LastChangedAt
+authorization master ( global )
+etag master LastChangedAt
+{
+  create;
+  update;
+  delete;
+
+  draft action Activate optimized;
+  draft action Discard;
+  draft action Edit;
+  draft action Resume;
+  draft determine action Prepare
+  {
+    validation validateAdventurerName;
+  }
+
+
+  field ( readonly, numbering : managed ) AdventurerId;
+  field ( readonly ) GuildName;
+
+  field ( readonly ) CreatedAt, CreatedBy, LastChangedAt,
+  LastChangedBy, LocalLastChangedAt;
+  field ( mandatory ) AdventurerName, AdventurerClass;
+
+  //  Select a guild from the guild list and join it
+  action joinGuild parameter ZI_RPG_JOIN_GUILD_PARAM result [1] $self;
+  // Accept an available quest — assigns it to this adventurer
+  action acceptQuest parameter ZI_RPG_ACCEPT_QUEST_PARAM result [1] $self;
+
+  //  " Sets Level=1, XP=0 on every new adventurer
+  determination initAdventurer on modify { create; }
+
+  validation validateAdventurerName on save {create; field AdventurerName; }
+
+  determination setDefaultClass on modify { create; }
+
+
+  mapping for zrpg_adventurer
+    {
+      AdventurerId       = adventurer_id;
+      GuildId            = guild_id;
+      AdventurerName     = adventurer_name;
+      AdventurerClass    = adventurer_class;
+      AdventurerLevel    = adventurer_level;
+      AdventurerXp       = adventurer_xp;
+      CreatedAt          = created_at;
+      CreatedBy          = created_by;
+      LastChangedAt      = last_changed_at;
+      LastChangedBy      = last_changed_by;
+      LocalLastChangedAt = local_last_changed_at;
+    }
+
+}

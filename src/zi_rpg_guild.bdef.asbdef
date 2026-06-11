@@ -1,0 +1,38 @@
+managed implementation in class ZBP_I_RPG_GUILD unique;
+strict ( 2 );
+with draft;
+
+define behavior for ZI_RPG_GUILD alias Guild
+  persistent table zrpg_guild
+  draft table zrpg_guild_d
+  lock master total etag LastChangedAt
+  authorization master ( global )
+  etag master LastChangedAt
+{
+  create;
+  update;
+  delete;
+
+  draft action Activate optimized;
+  draft action Discard;
+  draft action Edit;
+  draft action Resume;
+  draft determine action Prepare;
+
+  field ( readonly, numbering : managed ) GuildId;
+  field ( readonly ) CreatedAt, CreatedBy, LastChangedAt,
+                     LastChangedBy, LocalLastChangedAt;
+  field ( mandatory ) GuildName;
+
+  mapping for zrpg_guild
+  {
+    GuildId            = guild_id;
+    GuildName          = guild_name;
+    Description        = description;
+    CreatedAt          = created_at;
+    CreatedBy          = created_by;
+    LastChangedAt      = last_changed_at;
+    LastChangedBy      = last_changed_by;
+    LocalLastChangedAt = local_last_changed_at;
+  }
+}

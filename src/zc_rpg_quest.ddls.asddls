@@ -1,0 +1,23 @@
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Quest - Projection View'
+@Metadata.allowExtensions: true
+
+define root view entity ZC_RPG_QUEST
+  provider contract transactional_query
+  as projection on ZI_RPG_QUEST
+{
+  key QuestId,
+      QuestName,
+      Description,
+      RequiredLevel,
+      XpReward,
+      Status,
+      AdventurerId,
+      CreatedAt,
+      CreatedBy,
+      LastChangedAt,
+      LastChangedBy,
+      LocalLastChangedAt,
+
+      _Adventurer : redirected to ZC_RPG_ADVENTURER
+}

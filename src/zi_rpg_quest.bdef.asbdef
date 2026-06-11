@@ -1,0 +1,51 @@
+managed implementation in class ZBP_I_RPG_QUEST unique;
+strict ( 2 );
+with draft;
+
+define behavior for ZI_RPG_QUEST alias Quest
+  persistent table zrpg_quest
+  draft table zrpg_quest_d
+  lock master total etag LastChangedAt
+  authorization master ( global )
+  etag master LastChangedAt
+{
+  create;
+  update;
+  delete;
+
+  draft action Activate optimized;
+  draft action Discard;
+  draft action Edit;
+  draft action Resume;
+  draft determine action Prepare
+  {
+    validation validateLevelRequirement;
+  }
+
+  field ( readonly, numbering : managed ) QuestId;
+  field ( readonly ) CreatedAt, CreatedBy, LastChangedAt,
+                     LastChangedBy, LocalLastChangedAt;
+  field ( mandatory ) QuestName, RequiredLevel, XpReward;
+
+  action acceptQuest   parameter ZI_RPG_ACCEPT_QUEST_PARAM result [1] $self;
+  action completeQuest result [1] $self;
+
+  validation validateLevelRequirement on save { field AdventurerId; }
+  determination setInitialStatus on modify { create; }
+
+  mapping for zrpg_quest
+  {
+    QuestId            = quest_id;
+    QuestName          = quest_name;
+    Description        = description;
+    RequiredLevel      = required_level;
+    XpReward           = xp_reward;
+    Status             = status;
+    AdventurerId       = adventurer_id;
+    CreatedAt          = created_at;
+    CreatedBy          = created_by;
+    LastChangedAt      = last_changed_at;
+    LastChangedBy      = last_changed_by;
+    LocalLastChangedAt = local_last_changed_at;
+  }
+}

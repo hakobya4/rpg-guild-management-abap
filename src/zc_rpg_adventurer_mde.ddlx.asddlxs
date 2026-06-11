@@ -1,0 +1,94 @@
+@Metadata.layer: #CORE
+
+@UI.headerInfo:{
+    typeName:       'Adventurer',
+    typeNamePlural: 'Adventurers',
+    title:{ type: #STANDARD, value: 'AdventurerName' },
+    description:{ type: #STANDARD, value: 'AdventurerClass' }
+}
+
+
+
+annotate view ZC_RPG_ADVENTURER with
+{
+  @UI.facet: [
+    {
+      id: 'AdventurerDetails', purpose: #STANDARD,
+      type: #FIELDGROUP_REFERENCE, label: 'Details',
+      position: 10, targetQualifier: 'AdventurerDetails'
+    },
+    {
+      id: 'GameStats', purpose: #STANDARD,
+      type: #FIELDGROUP_REFERENCE, label: 'Game Stats',
+      position: 20, targetQualifier: 'GameStats'
+    },
+    {
+      id: 'GuildInfo', purpose: #STANDARD,
+      type: #FIELDGROUP_REFERENCE, label: 'Guild Membership',
+      position: 30, targetQualifier: 'GuildInfo'
+    },
+   {
+  //    " Quests this adventurer has accepted
+    id: 'MyQuests', purpose: #STANDARD,
+    type: #LINEITEM_REFERENCE, label: 'My Quests',
+    position: 40, targetElement: '_Quest'
+  },
+  {
+  //    " All OPEN quests available to take
+    id: 'AvailableQuests', purpose: #STANDARD,
+    type: #LINEITEM_REFERENCE, label: 'Available Quests',
+    position: 50, targetElement: '_AvailableQuest'
+  }
+  ]
+  @UI.lineItem:       [{ position: 10, label: 'Name' }]
+  @UI.selectionField: [{ position: 10 }]
+  @UI.identification: [{ position: 10 }]
+  @UI.fieldGroup:     [{ qualifier: 'AdventurerDetails', position: 10, label: 'Name' }]
+  AdventurerName;
+
+  @Consumption.valueHelpDefinition: [{
+    entity: {
+      name:    'ZI_RPG_CLASS_VH',
+      element: 'AdventurerClass'
+    },
+    additionalBinding: [{
+      usage:        #RESULT
+    }],
+    useForValidation: true
+  }]
+  @UI.lineItem:       [{ position: 20, label: 'Class' }]
+  @UI.selectionField: [{ position: 20 }]
+  @UI.identification: [{ position: 20 }]
+  @UI.fieldGroup:     [{ qualifier: 'AdventurerDetails', position: 20, label: 'Class' }]
+  AdventurerClass;
+
+  @UI.lineItem:       [{ position: 30, label: 'Level' }]
+  @UI.identification: [{ position: 30 }]
+  @UI.fieldGroup:     [{ qualifier: 'GameStats', position: 10, label: 'Level' }]
+  AdventurerLevel;
+
+  @UI.lineItem:       [{ position: 40, label: 'XP' }]
+  @UI.identification: [{ position: 40 }]
+  @UI.fieldGroup:     [{ qualifier: 'GameStats', position: 20, label: 'Total XP' }]
+  AdventurerXp;
+
+  @UI.lineItem:       [{ position: 50, label: 'Guild' }]
+  @UI.identification: [{ position: 50, label: 'Current Guild' }]
+  @UI.fieldGroup:     [{ qualifier: 'GuildInfo', position: 10, label: 'Current Guild' }]
+  GuildName;
+
+
+  @UI.identification: [{
+    position:   60,
+    label:      'Join Guild',
+    type:       #FOR_ACTION,
+    dataAction: 'joinGuild'
+  },
+      {
+        position:   70,
+        label:      'Take Quest',
+        type:       #FOR_ACTION,
+        dataAction: 'acceptQuest'
+      }]
+  AdventurerId;
+}

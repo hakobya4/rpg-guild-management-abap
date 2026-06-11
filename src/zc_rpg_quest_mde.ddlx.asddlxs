@@ -1,0 +1,51 @@
+@Metadata.layer: #CORE
+
+@UI.headerInfo:{
+    typeName:       'Quest',
+    typeNamePlural: 'Quests',
+    title:{ type: #STANDARD, value: 'QuestName' },
+    description:{ type: #STANDARD, value: 'Status' }
+}
+
+
+annotate view ZC_RPG_QUEST with
+{
+  @UI.facet: [
+    {
+      id: 'QuestDetails', purpose: #STANDARD,
+      type: #FIELDGROUP_REFERENCE, label: 'Quest Details',
+      position: 10, targetQualifier: 'QuestDetails'
+    },
+    {
+      id: 'Requirements', purpose: #STANDARD,
+      type: #FIELDGROUP_REFERENCE, label: 'Requirements',
+      position: 20, targetQualifier: 'Requirements'
+    }
+  ]
+
+  @UI.lineItem:       [{ position: 10, label: 'Quest Name' }]
+  @UI.selectionField: [{ position: 10 }]
+  @UI.identification: [{ position: 10 }]
+  @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 10, label: 'Quest Name' }]
+  QuestName;
+
+  @UI.lineItem:       [{ position: 20, label: 'Status' }]
+  @UI.selectionField: [{ position: 20 }]
+  @UI.identification: [{ position: 20 }]
+  @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 20, label: 'Status' }]
+  Status;
+
+  @UI.lineItem:       [{ position: 30, label: 'Required Level' }]
+  @UI.identification: [{ position: 30 }]
+  @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 10, label: 'Required Level' }]
+  RequiredLevel;
+
+  @UI.lineItem:       [{ position: 40, label: 'XP Reward' }]
+  @UI.identification: [{ position: 40 }]
+  @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 20, label: 'XP Reward' }]
+  XpReward;
+
+  @UI.lineItem:       [{ position: 50, label: 'Description' }]
+  @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 30, label: 'Description' }]
+  Description;
+}

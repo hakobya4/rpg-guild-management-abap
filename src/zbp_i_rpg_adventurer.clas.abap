@@ -1,0 +1,5 @@
+CLASS zbp_i_rpg_adventurer DEFINITION PUBLIC ABSTRACT FINAL FOR BEHAVIOR OF zi_rpg_adventurer.
+ENDCLASS.
+
+CLASS zbp_i_rpg_adventurer IMPLEMENTATION.
+ENDCLASS.
