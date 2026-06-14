@@ -44,6 +44,10 @@ annotate view ZC_RPG_QUEST with
   @UI.identification: [{ position: 40 }]
   @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 20, label: 'XP Reward' }]
   XpReward;
+  @UI.lineItem:       [{ position: 45, label: 'Gold Reward' }]
+  @UI.identification: [{ position: 45 }]
+  @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 20, label: 'Gold Reward' }]
+  GoldReward;
 
   @UI.lineItem:       [{ position: 50, label: 'Description' }]
   @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 30, label: 'Description' }]

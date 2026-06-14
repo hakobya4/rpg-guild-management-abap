@@ -18,7 +18,7 @@ define behavior for ZC_RPG_ADVENTURER alias Adventurer
   use action completeQuest;
 
   // Level and XP are managed by the application (defaults + quest rewards)
-  field ( readonly ) AdventurerLevel, AdventurerXp;
+  field ( readonly ) AdventurerLevel, AdventurerXp, AdventurerGold;
   // Guild can be chosen on creation; afterwards only via joinGuild
-  field ( readonly : update ) GuildId;
+  field ( readonly ) GuildId;
 }

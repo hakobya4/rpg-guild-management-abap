@@ -36,7 +36,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
 
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer
-        FIELDS ( AdventurerLevel AdventurerXp )
+        FIELDS ( AdventurerLevel AdventurerXp AdventurerGold )
         WITH CORRESPONDING #( keys )
       RESULT DATA(adventurers).
 
@@ -48,6 +48,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         %tky            = <adv>-%tky
         AdventurerLevel = 1
         AdventurerXp    = 0
+        AdventurerGold  = 0
       ) TO updates.
     ENDLOOP.
 
@@ -390,7 +391,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
 
       " ── Step 3: Quest must belong to this adventurer ───────────
       " Only the adventurer who accepted the quest may complete it.
-      SELECT SINGLE quest_name, status, adventurer_id, xp_reward
+      SELECT SINGLE quest_name, status, adventurer_id, xp_reward, gold_reward
         FROM zrpg_quest
         WHERE quest_id = @lv_quest_id
         INTO @DATA(quest_data).
@@ -461,7 +462,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
       " quests in one request accumulates correctly.
       READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
         ENTITY Adventurer
-          FIELDS ( AdventurerLevel AdventurerXp )
+          FIELDS ( AdventurerLevel AdventurerXp AdventurerGold )
           WITH VALUE #( ( %tky = <adv>-%tky ) )
         RESULT DATA(current_stats).
 
@@ -472,13 +473,15 @@ CLASS lhc_Adventurer IMPLEMENTATION.
       DATA(levels_gained) = total_xp DIV c_xp_per_level.
       DATA(new_level)     = <stats>-AdventurerLevel + levels_gained.
       DATA(new_xp)        = total_xp MOD c_xp_per_level.
+      DATA(new_gold)    = <stats>-AdventurerGold + quest_data-gold_reward.
 
       MODIFY ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
         ENTITY Adventurer
-          UPDATE FIELDS ( AdventurerLevel AdventurerXp )
+          UPDATE FIELDS ( AdventurerLevel AdventurerXp AdventurerGold )
           WITH VALUE #( ( %tky            = <adv>-%tky
                           AdventurerLevel = new_level
-                          AdventurerXp    = new_xp ) )
+                          AdventurerXp    = new_xp
+                          AdventurerGold = new_gold ) )
         REPORTED DATA(rep_xp)
         FAILED   DATA(fail_xp).
 

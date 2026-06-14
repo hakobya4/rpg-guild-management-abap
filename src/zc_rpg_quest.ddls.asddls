@@ -11,13 +11,9 @@ define root view entity ZC_RPG_QUEST
       Description,
       RequiredLevel,
       XpReward,
+      GoldReward,
       Status,
       AdventurerId,
-      CreatedAt,
-      CreatedBy,
-      LastChangedAt,
-      LastChangedBy,
-      LocalLastChangedAt,
 
       _Adventurer : redirected to ZC_RPG_ADVENTURER
 }

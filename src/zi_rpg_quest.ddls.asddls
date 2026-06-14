@@ -14,6 +14,7 @@ define root view entity ZI_RPG_QUEST
       description           as Description,
       required_level        as RequiredLevel,
       xp_reward             as XpReward,
+      gold_reward           as GoldReward,
       status                as Status,
       adventurer_id         as AdventurerId,
 

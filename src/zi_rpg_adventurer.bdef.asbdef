@@ -53,6 +53,7 @@ etag master LastChangedAt
       AdventurerClass    = adventurer_class;
       AdventurerLevel    = adventurer_level;
       AdventurerXp       = adventurer_xp;
+      AdventurerGold     = adventurer_gold;
       CreatedAt          = created_at;
       CreatedBy          = created_by;
       LastChangedAt      = last_changed_at;

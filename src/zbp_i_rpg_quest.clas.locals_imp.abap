@@ -289,13 +289,13 @@ CLASS lhc_Quest IMPLEMENTATION.
         ) TO reported-Quest.
       ENDIF.
 
-      IF <quest>-XpReward < 1.
+      IF <quest>-XpReward < 1 or <quest>-GoldReward.
         APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
         APPEND VALUE #(
           %tky              = <quest>-%tky
           %msg              = new_message_with_text(
                                 severity = if_abap_behv_message=>severity-error
-                                text     = 'XP reward must be at least 1.' )
+                                text     = 'XP or Gold reward must be at least 1.' )
           %element-XpReward = if_abap_behv=>mk-on
         ) TO reported-Quest.
       ENDIF.

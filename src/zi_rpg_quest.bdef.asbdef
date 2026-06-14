@@ -25,7 +25,7 @@ define behavior for ZI_RPG_QUEST alias Quest
   field ( readonly, numbering : managed ) QuestId;
   field ( readonly ) CreatedAt, CreatedBy, LastChangedAt,
                      LastChangedBy, LocalLastChangedAt;
-  field ( mandatory ) QuestName, RequiredLevel, XpReward;
+  field ( mandatory ) QuestName, RequiredLevel, XpReward, GoldReward;
 
   // Lifecycle fields are only changed by the actions below
   field ( readonly ) Status, AdventurerId;
@@ -35,7 +35,7 @@ define behavior for ZI_RPG_QUEST alias Quest
   // Marks the quest COMPLETED and awards XP to the assigned adventurer
   action completeQuest result [1] $self;
 
-  validation validateQuestValues on save { create; field RequiredLevel, XpReward; }
+  validation validateQuestValues on save { create; field RequiredLevel, XpReward, GoldReward; }
   determination setInitialStatus on modify { create; }
 
   mapping for zrpg_quest
@@ -45,6 +45,7 @@ define behavior for ZI_RPG_QUEST alias Quest
     Description        = description;
     RequiredLevel      = required_level;
     XpReward           = xp_reward;
+    GoldReward         = gold_reward;
     Status             = status;
     AdventurerId       = adventurer_id;
     CreatedAt          = created_at;

@@ -7,7 +7,7 @@ define root view entity ZI_RPG_ADVENTURER
   as select from    zrpg_adventurer
 
   //  " Join guild table to get the guild name directly
-    left outer join zrpg_guild on zrpg_adventurer.guild_id = zrpg_guild.guild_id
+  left outer join zrpg_guild on zrpg_adventurer.guild_id = zrpg_guild.guild_id
 
   association [0..1] to ZI_RPG_GUILD as _Guild          on $projection.GuildId = _Guild.GuildId
 
@@ -26,6 +26,7 @@ define root view entity ZI_RPG_ADVENTURER
       zrpg_adventurer.adventurer_class      as AdventurerClass,
       zrpg_adventurer.adventurer_level      as AdventurerLevel,
       zrpg_adventurer.adventurer_xp         as AdventurerXp,
+      zrpg_adventurer.adventurer_gold       as AdventurerGold,
 
       @Semantics.systemDateTime.createdAt: true
       zrpg_adventurer.created_at            as CreatedAt,

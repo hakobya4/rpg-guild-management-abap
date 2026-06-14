@@ -71,6 +71,11 @@ annotate view ZC_RPG_ADVENTURER with
   @UI.identification: [{ position: 40 }]
   @UI.fieldGroup:     [{ qualifier: 'GameStats', position: 20, label: 'Total XP' }]
   AdventurerXp;
+  
+  @UI.lineItem:       [{ position: 45, label: 'Gold' }]
+  @UI.identification: [{ position: 45 }]
+  @UI.fieldGroup:     [{ qualifier: 'GameStats', position: 20, label: 'Total Gold' }]
+  AdventurerGold;
 
   @UI.lineItem:       [{ position: 50, label: 'Guild' }]
   @UI.identification: [{ position: 50, label: 'Current Guild' }]

@@ -15,11 +15,7 @@ define root view entity ZC_RPG_ADVENTURER
       AdventurerClass,
       AdventurerLevel,
       AdventurerXp,
-      CreatedAt,
-      CreatedBy,
-      LastChangedAt,
-      LastChangedBy,
-      LocalLastChangedAt,
+      AdventurerGold,
 
       _Guild          : redirected to ZC_RPG_GUILD,
       _Quest          : redirected to ZC_RPG_QUEST,
