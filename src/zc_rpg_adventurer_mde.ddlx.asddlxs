@@ -38,6 +38,18 @@ annotate view ZC_RPG_ADVENTURER with
     id: 'AvailableQuests', purpose: #STANDARD,
     type: #LINEITEM_REFERENCE, label: 'Available Quests',
     position: 50, targetElement: '_AvailableQuest'
+  },
+     {
+  //    " Items this adventurer has bought
+    id: 'Inventory', purpose: #STANDARD,
+    type: #LINEITEM_REFERENCE, label: 'Inventory',
+    position: 60, targetElement: '_Inventory'
+  },
+  {
+  //    " All items available to take
+    id: 'Marektplace', purpose: #STANDARD,
+    type: #LINEITEM_REFERENCE, label: 'Marketplace',
+    position: 70, targetElement: '_Marketplace'
   }
   ]
   @UI.lineItem:       [{ position: 10, label: 'Name' }]
@@ -71,7 +83,7 @@ annotate view ZC_RPG_ADVENTURER with
   @UI.identification: [{ position: 40 }]
   @UI.fieldGroup:     [{ qualifier: 'GameStats', position: 20, label: 'Total XP' }]
   AdventurerXp;
-  
+
   @UI.lineItem:       [{ position: 45, label: 'Gold' }]
   @UI.identification: [{ position: 45 }]
   @UI.fieldGroup:     [{ qualifier: 'GameStats', position: 20, label: 'Total Gold' }]
@@ -89,17 +101,23 @@ annotate view ZC_RPG_ADVENTURER with
     type:       #FOR_ACTION,
     dataAction: 'joinGuild'
   },
-      {
-        position:   70,
-        label:      'Take Quest',
-        type:       #FOR_ACTION,
-        dataAction: 'acceptQuest'
+  {
+     position:   70,
+     label:      'Take Quest',
+     type:       #FOR_ACTION,
+     dataAction: 'acceptQuest'
       },
       {
         position:   80,
         label:      'Complete Quest',
         type:       #FOR_ACTION,
         dataAction: 'completeQuest'
-      }]
+      },
+      {     position:   90,
+        label:      'Buy Item',
+        type:       #FOR_ACTION,
+        dataAction: 'buyItem' }]
+
   AdventurerId;
+
 }

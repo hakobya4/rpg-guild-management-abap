@@ -1,0 +1,88 @@
+@Metadata.layer: #CORE
+
+@UI.headerInfo:{
+    typeName:       'Marketplace',
+    typeNamePlural: 'Marketplaces',
+    title:{ type: #STANDARD, value: 'ItemName' },
+    description:{ type: #STANDARD, value: 'Status' }
+}
+
+
+annotate entity ZC_RPG_MARKETPLACE with
+{
+  @UI.facet: [
+    {
+      id: 'ItemDetails', purpose: #STANDARD,
+      type: #FIELDGROUP_REFERENCE, label: 'ItemDetails',
+      position: 10, targetQualifier: 'ItemDetails'
+    },
+    {
+      id: 'Requirements', purpose: #STANDARD,
+      type: #FIELDGROUP_REFERENCE, label: 'Requirements',
+      position: 20, targetQualifier: 'Requirements'
+    }
+  ]
+  @UI.lineItem:       [{ position: 10, label: 'Item' }]
+  @UI.selectionField: [{ position: 10 }]
+  @UI.identification: [{ position: 10 }]
+  @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 10, label: 'Item' }]
+  ItemName;
+  
+  @Consumption.valueHelpDefinition: [{
+  entity: {
+    name:    'ZI_ItemType_VH',
+    element: 'ItemType'
+  },
+  additionalBinding: [{
+    usage:        #RESULT
+  }],
+  useForValidation: true
+  }]
+  @UI.lineItem:       [{ position: 20, label: 'Type' }]
+  @UI.selectionField: [{ position: 20 }]
+  @UI.identification: [{ position: 20 }]
+  @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 20, label: 'Type' }]
+  ItemType;
+  
+    @Consumption.valueHelpDefinition: [{
+  entity: {
+    name:    'ZI_ItemSubtype_VH',
+    element: 'ItemSubtype'
+  },
+  additionalBinding: [{
+    usage:        #RESULT
+  }],
+  useForValidation: true
+  }]
+  @UI.lineItem:       [{ position: 25, label: 'Subtype' }]
+  @UI.selectionField: [{ position: 25 }]
+  @UI.identification: [{ position: 25 }]
+  @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 20, label: 'Subtype' }]
+  ItemSubtype;
+  
+  @UI.lineItem:       [{ position: 30, label: 'Description' }]
+  @UI.identification: [{ position: 30 }]
+  @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 10, label: 'Description' }]
+  Description;
+
+  @UI.lineItem:       [{ position: 40, label: 'Required Level' }]
+  @UI.identification: [{ position: 40 }]
+  @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 20, label: 'Required Level' }]
+  RequiredLevel;
+
+  @UI.lineItem:       [{ position: 45, label: 'Price' }]
+  @UI.identification: [{ position: 45 }]
+  @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 20, label: 'Price' }]
+  Price;
+
+  @UI.lineItem:       [{ position: 50, label: 'Amount Available' }]
+  @UI.identification: [{ position: 50 }]
+  @UI.fieldGroup:     [{ qualifier: 'Requiremnts', position: 10, label: 'Amount Available' }]
+  AmountAvailable;
+
+  @UI.lineItem:       [{ position: 50, label: 'Status' }]
+  @UI.identification: [{ position: 50, label: 'Item Status' }]
+  @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 10, label: 'Item Status' }]
+  Status;
+
+}

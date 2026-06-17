@@ -1,0 +1,5 @@
+CLASS zbp_i_rpg_marketplace DEFINITION PUBLIC ABSTRACT FINAL FOR BEHAVIOR OF zi_rpg_marketplace.
+ENDCLASS.
+
+CLASS zbp_i_rpg_marketplace IMPLEMENTATION.
+ENDCLASS.

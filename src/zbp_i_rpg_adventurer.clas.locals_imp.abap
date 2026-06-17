@@ -23,6 +23,8 @@ CLASS lhc_Adventurer DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR ACTION Adventurer~acceptQuest RESULT result.
     METHODS completeQuest FOR MODIFY
       IMPORTING keys FOR ACTION Adventurer~completeQuest RESULT result.
+    METHODS buyItem FOR MODIFY
+      IMPORTING keys FOR ACTION Adventurer~buyItem RESULT result.
 
 ENDCLASS.
 
@@ -277,7 +279,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD acceptQuest.
-    " ── Step 1: Read adventurer data ──────────────────────────────
+    " Read adventurer data ──────────────────────────────
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer
         FIELDS ( AdventurerName AdventurerLevel )
@@ -517,5 +519,86 @@ CLASS lhc_Adventurer IMPLEMENTATION.
                       ( %tky   = adv-%tky
                         %param = CORRESPONDING #( adv ) ) ).
   ENDMETHOD.
-ENDCLASS.
+  METHOD buyItem.
+   " Read adventurer data ──────────────────────────────
+    READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
+      ENTITY Adventurer
+        FIELDS ( AdventurerName AdventurerLevel )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(adventurers).
 
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
+
+      READ TABLE adventurers ASSIGNING FIELD-SYMBOL(<adv>)
+        WITH KEY %tky = <key>-%tky.
+      CHECK sy-subrc = 0.
+
+      "Adventurer must be persisted before buying items ─
+      " A draft that was never activated does not exist in the active
+      " table yet and therefore cannot buy items.
+      SELECT SINGLE @abap_true
+        FROM zrpg_adventurer
+        WHERE adventurer_id = @<adv>-AdventurerId
+        INTO @DATA(lv_persisted).
+
+      IF <key>-%is_draft = if_abap_behv=>mk-on OR lv_persisted <> abap_true.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky                 = <adv>-%tky
+          %action-buyItem  = if_abap_behv=>mk-on
+          %msg                 = new_message_with_text(
+                                   severity = if_abap_behv_message=>severity-error
+                                   text     = 'Save the adventurer before buying items.' )
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
+
+      " Validate ItemId was provided ──────────────────
+      DATA(lv_item_id) = <key>-%param-ItemId.
+      IF lv_item_id IS INITIAL.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky = <adv>-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-error
+                   text     = 'Please select am item.' )
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
+
+      " Delegate to the Marketplace BO action
+      MODIFY ENTITIES OF zi_rpg_marketplace
+        ENTITY Marketplace
+          EXECUTE buyItem
+          FROM VALUE #( ( ItemId             = lv_item_id
+                          %param-AdventurerId = <adv>-AdventurerId ) )
+        FAILED   DATA(sale_failed)
+        REPORTED DATA(sale_reported).
+
+      " ── Step 5: Relay quest messages to the adventurer UI ──────
+      LOOP AT sale_reported-Marketplace ASSIGNING FIELD-SYMBOL(<item_msg>).
+        IF <item_msg>-%msg IS BOUND.
+          APPEND VALUE #( %tky = <adv>-%tky
+                          %msg = <item_msg>-%msg ) TO reported-Adventurer.
+        ENDIF.
+      ENDLOOP.
+
+      IF sale_failed-Marketplace IS NOT INITIAL.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        CONTINUE.
+      ENDIF.
+
+    ENDLOOP.
+
+    "  Return updated adventurer
+    READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
+      ENTITY Adventurer ALL FIELDS
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(result_adventurers).
+
+    result = VALUE #( FOR adv IN result_adventurers
+                      ( %tky   = adv-%tky
+                        %param = CORRESPONDING #( adv ) ) ).
+  ENDMETHOD.
+
+ENDCLASS.

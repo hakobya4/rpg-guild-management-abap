@@ -19,6 +19,8 @@ define root view entity ZC_RPG_ADVENTURER
 
       _Guild          : redirected to ZC_RPG_GUILD,
       _Quest          : redirected to ZC_RPG_QUEST,
-      _AvailableQuest : redirected to ZC_RPG_QUEST
+      _AvailableQuest : redirected to ZC_RPG_QUEST,
+      _Inventory      : redirected to ZC_RPG_MARKETPLACE,
+      _Marketplace    : redirected to ZC_RPG_MARKETPLACE
 
 }

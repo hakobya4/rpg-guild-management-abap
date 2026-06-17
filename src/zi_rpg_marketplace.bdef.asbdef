@@ -1,0 +1,55 @@
+managed implementation in class zbp_i_rpg_marketplace unique;
+strict ( 2 );
+with draft;
+
+define behavior for ZI_RPG_MARKETPLACE alias Marketplace
+persistent table zrpg_marketplace
+draft table zrpg_market_d
+lock master total etag LastChangedAt
+authorization master ( global )
+etag master LastChangedAt
+{
+  create;
+  update;
+  delete;
+
+  draft action Activate optimized;
+  draft action Discard;
+  draft action Edit;
+  draft action Resume;
+  draft determine action Prepare
+  {
+    validation validateItemValues;
+  }
+
+  field ( readonly, numbering : managed ) ItemId;
+  field ( readonly ) CreatedAt, CreatedBy, LastChangedAt,
+  LastChangedBy, LocalLastChangedAt;
+  field ( mandatory ) ItemName, RequiredLevel, Price, AmountAvailable, ItemType;
+  field ( readonly ) Status, AdventurerId;
+  action buyItem parameter ZI_RPG_ASSIGN_ADV_PARAM result [1] $self;
+
+
+  validation validateItemValues on save { create; field ItemName, RequiredLevel, Price, AmountAvailable; }
+  determination setDefaultItemValues on modify { create; }
+
+
+  mapping for zrpg_marketplace
+    {
+      ItemId             = item_id;
+      ItemName           = item_name;
+      ItemType           = item_type;
+      ItemSubtype        = item_subtype;
+      Description        = description;
+      RequiredLevel      = required_level;
+      Price              = price;
+      AmountAvailable    = amount_available;
+      Status             = status;
+      AdventurerId       = adventurerid;
+      CreatedAt          = created_at;
+      CreatedBy          = created_by;
+      LastChangedAt      = last_changed_at;
+      LastChangedBy      = last_changed_by;
+      LocalLastChangedAt = local_last_changed_at;
+    }
+}
