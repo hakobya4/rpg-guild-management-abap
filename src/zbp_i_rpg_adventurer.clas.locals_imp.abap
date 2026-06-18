@@ -565,14 +565,22 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         ) TO reported-Adventurer.
         CONTINUE.
       ENDIF.
-      " Read the item price and check the adventurer can afford it
+      " Quantity from the action parameter (default 1)
+      DATA(lv_amount) = <key>-%param-Amount.
+      IF lv_amount < 1.
+        lv_amount = 1.
+      ENDIF.
+
+      " Read the item price and check the adventurer can afford the TOTAL
       " BEFORE the sale runs, so stock is not decremented on a failed buy.
       SELECT SINGLE item_name, price
         FROM zrpg_marketplace
         WHERE item_id = @lv_item_id
         INTO @DATA(item_data).
 
-      IF sy-subrc = 0 AND <adv>-AdventurerGold < item_data-price.
+      DATA(lv_total_cost) = lv_amount * item_data-price.
+
+      IF sy-subrc = 0 AND <adv>-AdventurerGold < lv_total_cost.
         APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
           %tky            = <adv>-%tky
@@ -580,20 +588,20 @@ CLASS lhc_Adventurer IMPLEMENTATION.
           %msg            = new_message_with_text(
                               severity = if_abap_behv_message=>severity-error
                               text     = |{ <adv>-AdventurerName } cannot afford|
-                                      && | '{ item_data-item_name }'.|
-                                      && | Price: { item_data-price },|
+                                      && | { lv_amount }x '{ item_data-item_name }'.|
+                                      && | Cost: { lv_total_cost },|
                                       && | gold: { <adv>-AdventurerGold }.| )
         ) TO reported-Adventurer.
         CONTINUE.
       ENDIF.
 
-      DATA(new_gold) = <adv>-AdventurerGold - item_data-price.
-      " Delegate to the Marketplace BO action
+      " Delegate to the Marketplace BO action (passes the quantity)
       MODIFY ENTITIES OF zi_rpg_marketplace
         ENTITY Marketplace
           EXECUTE buyItem
-          FROM VALUE #( ( ItemId             = lv_item_id
-                          %param-AdventurerId = <adv>-AdventurerId ) )
+          FROM VALUE #( ( ItemId              = lv_item_id
+                          %param-AdventurerId = <adv>-AdventurerId
+                          %param-Amount       = lv_amount ) )
         FAILED   DATA(sale_failed)
         REPORTED DATA(sale_reported).
 
@@ -610,18 +618,30 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-    ENDLOOP.
-
-    MODIFY ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
-    ENTITY Adventurer
-    UPDATE FIELDS ( AdventurerGold )
+      " Sale succeeded — deduct the total cost from the adventurer's gold
+      " (own BO, local mode — done per purchase inside the loop).
+      DATA(new_gold) = <adv>-AdventurerGold - lv_total_cost.
+      MODIFY ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
+        ENTITY Adventurer
+          UPDATE FIELDS ( AdventurerGold )
           WITH VALUE #( ( %tky           = <adv>-%tky
                           AdventurerGold = new_gold ) )
         REPORTED DATA(rep_gold)
         FAILED   DATA(fail_gold).
 
-    reported-Adventurer = CORRESPONDING #(
-    BASE ( reported-Adventurer ) rep_gold-Adventurer ).
+      reported-Adventurer = CORRESPONDING #(
+        BASE ( reported-Adventurer ) rep_gold-Adventurer ).
+
+      APPEND VALUE #(
+        %tky = <adv>-%tky
+        %msg = new_message_with_text(
+                 severity = if_abap_behv_message=>severity-success
+                 text     = |{ lv_total_cost } gold spent.|
+                         && | { <adv>-AdventurerName } now has { new_gold } gold.| )
+      ) TO reported-Adventurer.
+
+    ENDLOOP.
+
     "  Return updated adventurer
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer ALL FIELDS

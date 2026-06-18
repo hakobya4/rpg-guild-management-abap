@@ -9,4 +9,6 @@ define abstract entity ZI_RPG_BUY_ITEM_PARAM
     }
   }]
   ItemId : sysuuid_x16;
+  // How many units of the item to buy
+  Amount : abap.int4;
 }

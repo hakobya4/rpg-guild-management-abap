@@ -237,12 +237,33 @@ CLASS lhc_Marketplace IMPLEMENTATION.
         ) TO reported-Marketplace.
         CONTINUE.
       ENDIF.
-      "Change current count of item available
-      DATA(new_amount) = <item>-AmountAvailable - 1.
+      "  Requested quantity from the action parameter (default 1)
+      DATA(lv_amount) = <key>-%param-Amount.
+      IF lv_amount < 1.
+        lv_amount = 1.
+      ENDIF.
+
+      "  Not enough stock for the requested quantity
+      IF lv_amount > <item>-AmountAvailable.
+        APPEND VALUE #( %tky = <item>-%tky ) TO failed-Marketplace.
+        APPEND VALUE #(
+          %tky            = <item>-%tky
+          %action-buyItem = if_abap_behv=>mk-on
+          %msg            = new_message_with_text(
+                              severity = if_abap_behv_message=>severity-error
+                              text     = |Only { <item>-AmountAvailable } of|
+                                      && | '{ <item>-ItemName }' in stock|
+                                      && | (requested { lv_amount }).| )
+        ) TO reported-Marketplace.
+        CONTINUE.
+      ENDIF.
+
+      "  Reduce stock by the bought quantity and assign the item to the buyer
+      DATA(new_amount) = <item>-AmountAvailable - lv_amount..
 
       MODIFY ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
         ENTITY Marketplace
-          UPDATE FIELDS ( AmountAvailable AdventurerId  )
+          UPDATE FIELDS ( AmountAvailable AdventurerId )
           WITH VALUE #( ( %tky            = <item>-%tky
                           AmountAvailable = new_amount
                           AdventurerId    = lv_adventurer_id
@@ -250,7 +271,7 @@ CLASS lhc_Marketplace IMPLEMENTATION.
         REPORTED DATA(rep_item)
         FAILED   DATA(fail_item).
 
-      "  Buy item and make it sold
+      "  When the last unit is bought, mark the listing SOLD OUT
       IF new_amount = 0.
         APPEND VALUE #(
           %tky         = <item>-%tky
@@ -258,18 +279,18 @@ CLASS lhc_Marketplace IMPLEMENTATION.
         ) TO updates.
       ENDIF.
       APPEND VALUE #(
-    %tky = <item>-%tky
-    %msg = new_message_with_text(
-             severity = if_abap_behv_message=>severity-success
-             text     = |'{ <item>-Itemname }' successfuly bought| )
-  ) TO reported-Marketplace.
+      %tky = <item>-%tky
+        %msg = new_message_with_text(
+                 severity = if_abap_behv_message=>severity-success
+                 text     = |{ lv_amount }x '{ <item>-ItemName }' successfully bought.| )
+      ) TO reported-Marketplace.
     ENDLOOP.
 
 
     IF updates IS NOT INITIAL.
       MODIFY ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
         ENTITY Marketplace
-          UPDATE FIELDS ( AdventurerId Status )
+          UPDATE FIELDS ( Status )
           WITH updates
         REPORTED DATA(reported_update)
         FAILED   DATA(failed_update).

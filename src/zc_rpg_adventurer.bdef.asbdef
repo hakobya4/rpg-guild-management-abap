@@ -22,4 +22,10 @@ define behavior for ZC_RPG_ADVENTURER alias Adventurer
   field ( readonly ) AdventurerLevel, AdventurerXp, AdventurerGold;
   // Guild can be chosen on creation; afterwards only via joinGuild
   field ( readonly ) GuildId;
+  side effects
+  {
+    action buyItem affects entity _Inventory, entity _Marketplace, field AdventurerGold;
+
+  }
+
 }
