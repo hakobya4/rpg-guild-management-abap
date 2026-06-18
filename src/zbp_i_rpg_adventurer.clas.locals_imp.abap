@@ -575,7 +575,6 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         FAILED   DATA(sale_failed)
         REPORTED DATA(sale_reported).
 
-      " ── Step 5: Relay quest messages to the adventurer UI ──────
       LOOP AT sale_reported-Marketplace ASSIGNING FIELD-SYMBOL(<item_msg>).
         IF <item_msg>-%msg IS BOUND.
           APPEND VALUE #( %tky = <adv>-%tky

@@ -1,10 +1,11 @@
 CLASS lhc_Marketplace DEFINITION INHERITING FROM cl_abap_behavior_handler.
   PRIVATE SECTION.
 
-  CONSTANTS:
+    CONSTANTS:
       c_status_available TYPE zrpg_quest-status VALUE 'AVAILABLE',
-      c_status_sold TYPE zrpg_quest-status VALUE 'SOLD OUT',
-      c_default_itemtype TYPE zrpg_marketplace-item_type Value 'WEAPON'.
+      c_status_sold      TYPE zrpg_quest-status VALUE 'SOLD OUT',
+      c_default_itemtype TYPE zrpg_marketplace-item_type VALUE 'WEAPON',
+      c_default_itemsubtype TYPE zrpg_marketplace-item_subtype VALUE 'LONGSWORD'.
 
     METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
       IMPORTING REQUEST requested_authorizations FOR Marketplace RESULT result.
@@ -27,27 +28,27 @@ CLASS lhc_Marketplace IMPLEMENTATION.
 
 
   METHOD setDefaultItemValues.
-   READ ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
-       ENTITY Marketplace
-       FIELDS ( Status )
-       WITH CORRESPONDING #( keys )
-       RESULT DATA(market).
-     DATA updates TYPE TABLE FOR UPDATE zi_rpg_marketplace\\Marketplace.
+    READ ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
+        ENTITY Marketplace
+        FIELDS ( Status ItemType ItemSubtype )
+        WITH CORRESPONDING #( keys )
+        RESULT DATA(market_stat).
+    DATA stat_updates TYPE TABLE FOR UPDATE zi_rpg_marketplace\\Marketplace.
 
-    LOOP AT market ASSIGNING FIELD-SYMBOL(<market>).
-      CHECK <market>-Status IS INITIAL.
-      APPEND VALUE #( %tky = <market>-%tky  Status = c_status_available ) TO updates.
-      CHECK <market>-ItemType IS INITIAL.
-        APPEND VALUE #(
-        %tky            = <market>-%tky
-        ItemType = c_default_itemtype
-      ) TO updates.
+    LOOP AT market_stat ASSIGNING FIELD-SYMBOL(<market_stat>).
+     CHECK <market_stat>-Status IS INITIAL.
+      APPEND VALUE #(
+       %tky = <market_stat>-%tky
+       Status = c_status_available
+       ItemType = c_default_itemtype
+       ItemSubtype = c_default_itemsubtype
+       ) TO stat_updates.
     ENDLOOP.
 
-    CHECK updates IS NOT INITIAL.
+    CHECK stat_updates IS NOT INITIAL.
 
     MODIFY ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
-      ENTITY Marketplace UPDATE FIELDS ( Status ItemType ) WITH updates
+      ENTITY Marketplace UPDATE FIELDS ( Status ItemType ItemSubtype ) WITH stat_updates
       REPORTED DATA(rep)
       FAILED   DATA(fail).
 
@@ -95,9 +96,9 @@ CLASS lhc_Marketplace IMPLEMENTATION.
           %element-RequiredLevel = if_abap_behv=>mk-on
         ) TO reported-Marketplace.
 
-        ENDIF.
+      ENDIF.
 
-       IF <market>-Price < 1.
+      IF <market>-Price < 1.
         APPEND VALUE #( %tky = <market>-%tky ) TO failed-Marketplace.
         APPEND VALUE #(
           %tky                   = <market>-%tky
@@ -113,11 +114,11 @@ CLASS lhc_Marketplace IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD buyItem.
-   READ ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
-      ENTITY Marketplace
-        FIELDS ( ItemName Status AdventurerId RequiredLevel Price AmountAvailable )
-        WITH CORRESPONDING #( keys )
-      RESULT DATA(items).
+    READ ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
+       ENTITY Marketplace
+         FIELDS ( ItemName Status AdventurerId RequiredLevel Price AmountAvailable )
+         WITH CORRESPONDING #( keys )
+       RESULT DATA(items).
 
     DATA updates TYPE TABLE FOR UPDATE zi_rpg_marketplace\\Marketplace.
 
@@ -213,18 +214,18 @@ CLASS lhc_Marketplace IMPLEMENTATION.
 
       "  Buy item and make it sold
       IF new_amount = 0.
-      APPEND VALUE #(
-        %tky         = <item>-%tky
-        Status       = c_status_sold
-      ) TO updates.
+        APPEND VALUE #(
+          %tky         = <item>-%tky
+          Status       = c_status_sold
+        ) TO updates.
 
-      APPEND VALUE #(
-        %tky = <item>-%tky
-        %msg = new_message_with_text(
-                 severity = if_abap_behv_message=>severity-success
-                 text     = |'{ <item>-Itemname }' successfuly bought| )
-      ) TO reported-Marketplace.
-         ENDIF.
+        APPEND VALUE #(
+          %tky = <item>-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-success
+                   text     = |'{ <item>-Itemname }' successfuly bought| )
+        ) TO reported-Marketplace.
+      ENDIF.
     ENDLOOP.
 
     IF updates IS NOT INITIAL.

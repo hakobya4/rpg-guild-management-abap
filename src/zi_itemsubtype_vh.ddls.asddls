@@ -1,6 +1,6 @@
 @AbapCatalog.viewEnhancementCategory: [#NONE]
 @AccessControl.authorizationCheck: #NOT_REQUIRED
-@EndUserText.label: 'RPG - Item Subtype Value Help (cascading)'
+@EndUserText.label: 'RPG - Item Subtype Value Help'
 
 @Search.searchable: true
 @ObjectModel.dataCategory: #VALUE_HELP

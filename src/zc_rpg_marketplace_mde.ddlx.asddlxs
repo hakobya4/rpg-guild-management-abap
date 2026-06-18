@@ -54,15 +54,15 @@ annotate entity ZC_RPG_MARKETPLACE with
   }],
   useForValidation: true
   }]
-  @UI.lineItem:       [{ position: 25, label: 'Subtype' }]
-  @UI.selectionField: [{ position: 25 }]
-  @UI.identification: [{ position: 25 }]
-  @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 20, label: 'Subtype' }]
+  @UI.lineItem:       [{ position: 30, label: 'Subtype' }]
+  @UI.selectionField: [{ position: 30 }]
+  @UI.identification: [{ position: 30 }]
+  @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 30, label: 'Subtype' }]
   ItemSubtype;
   
-  @UI.lineItem:       [{ position: 30, label: 'Description' }]
-  @UI.identification: [{ position: 30 }]
-  @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 10, label: 'Description' }]
+  @UI.lineItem:       [{ position: 40, label: 'Description' }]
+  @UI.identification: [{ position: 40 }]
+  @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 40, label: 'Description' }]
   Description;
 
   @UI.lineItem:       [{ position: 40, label: 'Required Level' }]
@@ -77,7 +77,7 @@ annotate entity ZC_RPG_MARKETPLACE with
 
   @UI.lineItem:       [{ position: 50, label: 'Amount Available' }]
   @UI.identification: [{ position: 50 }]
-  @UI.fieldGroup:     [{ qualifier: 'Requiremnts', position: 10, label: 'Amount Available' }]
+  @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 10, label: 'Amount Available' }]
   AmountAvailable;
 
   @UI.lineItem:       [{ position: 50, label: 'Status' }]

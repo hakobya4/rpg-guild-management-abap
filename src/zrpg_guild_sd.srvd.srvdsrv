@@ -4,5 +4,5 @@ define service ZRPG_GUILD_SD {
   expose ZC_RPG_ADVENTURER  as Adventurer;
   expose ZC_RPG_QUEST       as Quest;
   expose ZI_RPG_CLASS_VH    as AdventurerClassVH;
-  expose ZI_RPG_MARKETPLACE as Marketplace;
+  expose ZC_RPG_MARKETPLACE as Marketplace;
 }
