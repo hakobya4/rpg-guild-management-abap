@@ -25,13 +25,14 @@ etag master LastChangedAt
   field ( readonly, numbering : managed ) ItemId;
   field ( readonly ) CreatedAt, CreatedBy, LastChangedAt,
   LastChangedBy, LocalLastChangedAt;
-  field ( mandatory ) ItemName, RequiredLevel, Price, AmountAvailable, ItemType;
+  field ( mandatory ) ItemName, RequiredLevel, Price, AmountAvailable, ItemType, ItemSubtype;
   field ( readonly ) Status, AdventurerId;
   action buyItem parameter ZI_RPG_ASSIGN_ADV_PARAM result [1] $self;
 
 
-  validation validateItemValues on save { create; field ItemName, RequiredLevel, Price, AmountAvailable; }
+  validation validateItemValues on save { create; field ItemName, RequiredLevel, Price; }
   determination setDefaultItemValues on modify { create; }
+  determination setDefaultSubtype on modify { field ItemType;}
 
 
   mapping for zrpg_marketplace

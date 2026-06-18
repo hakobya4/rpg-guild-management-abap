@@ -14,4 +14,10 @@ define behavior for ZC_RPG_MARKETPLACE alias Marketplace
   use action Edit;
   use action Resume;
   use action Prepare;
+    // Tells Fiori Elements to re-read ItemSubtype after ItemType is changed,
+  // so the setDefaultSubtype determination's result shows up immediately.
+  side effects
+  {
+    field ItemType affects field ItemSubtype;
+  }
 }

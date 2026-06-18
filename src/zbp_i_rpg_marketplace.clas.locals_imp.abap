@@ -2,9 +2,9 @@ CLASS lhc_Marketplace DEFINITION INHERITING FROM cl_abap_behavior_handler.
   PRIVATE SECTION.
 
     CONSTANTS:
-      c_status_available TYPE zrpg_quest-status VALUE 'AVAILABLE',
-      c_status_sold      TYPE zrpg_quest-status VALUE 'SOLD OUT',
-      c_default_itemtype TYPE zrpg_marketplace-item_type VALUE 'WEAPON',
+      c_status_available    TYPE zrpg_quest-status VALUE 'AVAILABLE',
+      c_status_sold         TYPE zrpg_quest-status VALUE 'SOLD OUT',
+      c_default_itemtype    TYPE zrpg_marketplace-item_type VALUE 'WEAPON',
       c_default_itemsubtype TYPE zrpg_marketplace-item_subtype VALUE 'LONGSWORD'.
 
     METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
@@ -13,6 +13,9 @@ CLASS lhc_Marketplace DEFINITION INHERITING FROM cl_abap_behavior_handler.
 
     METHODS setDefaultItemValues FOR DETERMINE ON MODIFY
       IMPORTING keys FOR Marketplace~setDefaultItemValues.
+
+    METHODS setDefaultSubtype FOR DETERMINE ON MODIFY
+      IMPORTING keys FOR Marketplace~setDefaultSubtype.
 
     METHODS validateItemValues FOR VALIDATE ON SAVE
       IMPORTING keys FOR Marketplace~validateItemValues.
@@ -36,7 +39,7 @@ CLASS lhc_Marketplace IMPLEMENTATION.
     DATA stat_updates TYPE TABLE FOR UPDATE zi_rpg_marketplace\\Marketplace.
 
     LOOP AT market_stat ASSIGNING FIELD-SYMBOL(<market_stat>).
-     CHECK <market_stat>-Status IS INITIAL.
+      CHECK <market_stat>-Status IS INITIAL.
       APPEND VALUE #(
        %tky = <market_stat>-%tky
        Status = c_status_available
@@ -49,6 +52,45 @@ CLASS lhc_Marketplace IMPLEMENTATION.
 
     MODIFY ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
       ENTITY Marketplace UPDATE FIELDS ( Status ItemType ItemSubtype ) WITH stat_updates
+      REPORTED DATA(rep)
+      FAILED   DATA(fail).
+
+    reported-Marketplace = CORRESPONDING #( BASE ( reported-Marketplace ) rep-Marketplace ).
+  ENDMETHOD.
+  METHOD setDefaultSubtype.
+    " When the item type changes, reset the subtype to that type's default
+    " so the (type, subtype) pair always stays consistent.
+    READ ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
+      ENTITY Marketplace
+        FIELDS ( ItemType )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(items).
+
+    DATA updates TYPE TABLE FOR UPDATE zi_rpg_marketplace\\Marketplace.
+
+    LOOP AT items ASSIGNING FIELD-SYMBOL(<item>).
+
+      DATA(lv_subtype) = SWITCH zrpg_marketplace-item_subtype( <item>-ItemType
+        WHEN 'WEAPON'        THEN 'LONGSWORD'
+        WHEN 'ARMOR'         THEN 'SHIELD'
+        WHEN 'CONSUMABLE'    THEN 'POTION'
+        WHEN 'MAGIC ITEM'    THEN 'WAND'
+        WHEN 'MISCELLANEOUS' THEN 'ROPE'
+        ELSE '' ).
+
+      CHECK lv_subtype IS NOT INITIAL.
+
+      APPEND VALUE #(
+        %tky        = <item>-%tky
+        ItemSubtype = lv_subtype
+      ) TO updates.
+
+    ENDLOOP.
+
+    CHECK updates IS NOT INITIAL.
+
+    MODIFY ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
+      ENTITY Marketplace UPDATE FIELDS ( ItemSubtype ) WITH updates
       REPORTED DATA(rep)
       FAILED   DATA(fail).
 
@@ -71,18 +113,16 @@ CLASS lhc_Marketplace IMPLEMENTATION.
           %msg                   = new_message_with_text(
                                      severity = if_abap_behv_message=>severity-error
                                      text     = 'There must be at least 1 item in the stock.' )
-          %element-RequiredLevel = if_abap_behv=>mk-on
         ) TO reported-Marketplace.
       ENDIF.
 
-      IF strlen( replace( val =  <market>-ItemName sub = ` ` with = `` ) ) = 0.
+      IF strlen(  <market>-ItemName  ) = 0.
         APPEND VALUE #( %tky = <market>-%tky ) TO failed-Marketplace.
         APPEND VALUE #(
           %tky                   = <market>-%tky
           %msg                   = new_message_with_text(
                                      severity = if_abap_behv_message=>severity-error
                                      text     = 'Please insert a name for the item.' )
-          %element-RequiredLevel = if_abap_behv=>mk-on
         ) TO reported-Marketplace.
       ENDIF.
 
@@ -93,7 +133,6 @@ CLASS lhc_Marketplace IMPLEMENTATION.
           %msg                   = new_message_with_text(
                                      severity = if_abap_behv_message=>severity-error
                                      text     = 'The item must have a required level of higher than 0.' )
-          %element-RequiredLevel = if_abap_behv=>mk-on
         ) TO reported-Marketplace.
 
       ENDIF.
@@ -105,10 +144,10 @@ CLASS lhc_Marketplace IMPLEMENTATION.
           %msg                   = new_message_with_text(
                                      severity = if_abap_behv_message=>severity-error
                                      text     = 'The item must have a price higher than 0.' )
-          %element-RequiredLevel = if_abap_behv=>mk-on
         ) TO reported-Marketplace.
 
       ENDIF.
+
 
     ENDLOOP.
   ENDMETHOD.
@@ -194,20 +233,19 @@ CLASS lhc_Marketplace IMPLEMENTATION.
           %msg                = new_message_with_text(
                                   severity = if_abap_behv_message=>severity-error
                                   text     = |You must be level { <item>-RequiredLevel }|
-                                          && | to take this quest.|
-                                          && | { adventurer_data-adventurer_name }|
-                                          && | is currently level|
-                                          && | { adventurer_data-adventurer_level }.| )
+                                          && | to take this quest.| )
         ) TO reported-Marketplace.
         CONTINUE.
       ENDIF.
       "Change current count of item available
       DATA(new_amount) = <item>-AmountAvailable - 1.
+
       MODIFY ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
         ENTITY Marketplace
-          UPDATE FIELDS ( AmountAvailable )
+          UPDATE FIELDS ( AmountAvailable AdventurerId  )
           WITH VALUE #( ( %tky            = <item>-%tky
                           AmountAvailable = new_amount
+                          AdventurerId    = lv_adventurer_id
                ) )
         REPORTED DATA(rep_item)
         FAILED   DATA(fail_item).
@@ -218,15 +256,15 @@ CLASS lhc_Marketplace IMPLEMENTATION.
           %tky         = <item>-%tky
           Status       = c_status_sold
         ) TO updates.
-
-        APPEND VALUE #(
-          %tky = <item>-%tky
-          %msg = new_message_with_text(
-                   severity = if_abap_behv_message=>severity-success
-                   text     = |'{ <item>-Itemname }' successfuly bought| )
-        ) TO reported-Marketplace.
       ENDIF.
+      APPEND VALUE #(
+    %tky = <item>-%tky
+    %msg = new_message_with_text(
+             severity = if_abap_behv_message=>severity-success
+             text     = |'{ <item>-Itemname }' successfuly bought| )
+  ) TO reported-Marketplace.
     ENDLOOP.
+
 
     IF updates IS NOT INITIAL.
       MODIFY ENTITIES OF zi_rpg_marketplace IN LOCAL MODE

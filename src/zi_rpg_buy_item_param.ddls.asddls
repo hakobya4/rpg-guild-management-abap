@@ -4,7 +4,7 @@ define abstract entity ZI_RPG_BUY_ITEM_PARAM
   //" Value help shows all available items
   @Consumption.valueHelpDefinition: [{
     entity: {
-      name:    'ZC_RPG_MARKETPLACE',
+      name:    'ZI_RPG_ITEM_VH',
       element: 'ItemId'
     }
   }]

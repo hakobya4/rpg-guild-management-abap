@@ -49,8 +49,10 @@ annotate entity ZC_RPG_MARKETPLACE with
     name:    'ZI_ItemSubtype_VH',
     element: 'ItemSubtype'
   },
-  additionalBinding: [{
-    usage:        #RESULT
+additionalBinding: [{
+    localElement: 'ItemType',
+    element:      'ItemType',
+    usage:        #FILTER
   }],
   useForValidation: true
   }]
