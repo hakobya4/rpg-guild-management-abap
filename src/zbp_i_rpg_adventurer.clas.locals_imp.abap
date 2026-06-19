@@ -573,7 +573,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
 
       " Read the item price and check the adventurer can afford the TOTAL
       " BEFORE the sale runs, so stock is not decremented on a failed buy.
-      SELECT SINGLE item_name, price
+      SELECT SINGLE item_name, item_type, item_subtype, description, required_level, price
         FROM zrpg_marketplace
         WHERE item_id = @lv_item_id
         INTO @DATA(item_data).
@@ -639,6 +639,41 @@ CLASS lhc_Adventurer IMPLEMENTATION.
                  text     = |{ lv_total_cost } gold spent.|
                          && | { <adv>-AdventurerName } now has { new_gold } gold.| )
       ) TO reported-Adventurer.
+      " ── Add the bought units to the adventurer's inventory ─────
+      " One inventory row per (adventurer, item); accumulate the amount.
+      SELECT SINGLE inventory_id, amount
+        FROM zrpg_inventory
+        WHERE adventurerid = @<adv>-AdventurerId
+          AND item_id       = @lv_item_id
+        INTO @DATA(inv_row).
+
+      IF sy-subrc = 0.
+        " Already owned — increase the quantity
+        MODIFY ENTITIES OF zi_rpg_inventory
+          ENTITY Inventory
+            UPDATE FIELDS ( Amount )
+            WITH VALUE #( ( InventoryId = inv_row-inventory_id
+                            Amount      = inv_row-amount + lv_amount ) )
+          REPORTED DATA(rep_inv_u)
+          FAILED   DATA(fail_inv_u).
+      ELSE.
+        " First time owning this item — create a new inventory row
+        MODIFY ENTITIES OF zi_rpg_inventory
+          ENTITY Inventory
+            CREATE FIELDS ( AdventurerId ItemId ItemName ItemType ItemSubtype Description Amount RequiredLevel Price )
+              WITH VALUE #( ( %cid         = |INV_{ lv_item_id }|
+                            AdventurerId = <adv>-AdventurerId
+                            ItemId       = lv_item_id
+                            ItemName     = item_data-item_name
+                            ItemType     = item_data-item_type
+                            ItemSubtype  = item_data-item_subtype
+                            Description  = item_data-description
+                            Amount       = lv_amount
+                            RequiredLevel = item_data-required_level
+                            Price        = item_data-price ) )
+          REPORTED DATA(rep_inv_c)
+          FAILED   DATA(fail_inv_c).
+      ENDIF.
 
     ENDLOOP.
 

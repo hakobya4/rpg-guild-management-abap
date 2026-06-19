@@ -1,0 +1,5 @@
+CLASS zbp_i_rpg_inventory DEFINITION PUBLIC ABSTRACT FINAL FOR BEHAVIOR OF zi_rpg_inventory.
+ENDCLASS.
+
+CLASS zbp_i_rpg_inventory IMPLEMENTATION.
+ENDCLASS.

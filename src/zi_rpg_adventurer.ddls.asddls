@@ -16,8 +16,8 @@ define root view entity ZI_RPG_ADVENTURER
   //  " All OPEN quests available to take
   association [0..*] to ZI_RPG_QUEST as _AvailableQuest on _AvailableQuest.Status = 'OPEN'
   association [0..*] to ZI_RPG_MARKETPLACE as _Marketplace on _Marketplace.Status = 'AVAILABLE'
-  association [0..*] to ZI_RPG_MARKETPLACE as _Inventory on $projection.AdventurerId = _Inventory.AdventurerId 
-{
+  association [0..*] to ZI_RPG_INVENTORY as _Inventory on $projection.AdventurerId = _Inventory.Adventurerid
+  {
   key zrpg_adventurer.adventurer_id         as AdventurerId,
       zrpg_adventurer.guild_id              as GuildId,
 

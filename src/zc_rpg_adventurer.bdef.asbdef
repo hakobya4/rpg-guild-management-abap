@@ -25,7 +25,7 @@ define behavior for ZC_RPG_ADVENTURER alias Adventurer
   side effects
   {
     action buyItem affects entity _Inventory, entity _Marketplace, field AdventurerGold;
-
+    action acceptQuest affects entity _Quest;
   }
 
 }
