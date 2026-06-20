@@ -44,8 +44,6 @@ etag master LastChangedAt
 
   validation validateAdventurerInfo on save {create; field AdventurerName; field AdventurerClass;}
 
-  determination setDefaultClass on modify { create; }
-
 
   mapping for zrpg_adventurer
     {

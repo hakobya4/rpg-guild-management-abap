@@ -2,8 +2,8 @@ CLASS lhc_Marketplace DEFINITION INHERITING FROM cl_abap_behavior_handler.
   PRIVATE SECTION.
 
     CONSTANTS:
-      c_status_available    TYPE zrpg_quest-status VALUE 'AVAILABLE',
-      c_status_sold         TYPE zrpg_quest-status VALUE 'SOLD OUT',
+      c_status_available    TYPE zrpg_marketplace-status VALUE 'AVAILABLE',
+      c_status_sold         TYPE zrpg_marketplace-status VALUE 'SOLD OUT',
       c_default_itemtype    TYPE zrpg_marketplace-item_type VALUE 'WEAPON',
       c_default_itemsubtype TYPE zrpg_marketplace-item_subtype VALUE 'LONGSWORD'.
 
@@ -247,7 +247,7 @@ CLASS lhc_Marketplace IMPLEMENTATION.
           %action-buyItem = if_abap_behv=>mk-on
           %msg                = new_message_with_text(
                                   severity = if_abap_behv_message=>severity-error
-                                  text     = |Item '{ <item>-ItemName }' is not open|
+                                  text     = |Item '{ <item>-ItemName }' is not available|
                                           && | (status: { <item>-Status }).| )
         ) TO reported-Marketplace.
         CONTINUE.
@@ -263,7 +263,7 @@ CLASS lhc_Marketplace IMPLEMENTATION.
           %msg                = new_message_with_text(
                                   severity = if_abap_behv_message=>severity-error
                                   text     = |You must be level { <item>-RequiredLevel }|
-                                          && | to take this quest.| )
+                                          && | to buy '{ <item>-ItemName }'.| )
         ) TO reported-Marketplace.
         CONTINUE.
       ENDIF.
@@ -289,14 +289,13 @@ CLASS lhc_Marketplace IMPLEMENTATION.
       ENDIF.
 
       "  Reduce stock by the bought quantity and assign the item to the buyer
-      DATA(new_amount) = <item>-AmountAvailable - lv_amount..
+      DATA(new_amount) = <item>-AmountAvailable - lv_amount.
 
       MODIFY ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
         ENTITY Marketplace
-          UPDATE FIELDS ( AmountAvailable AdventurerId )
+          UPDATE FIELDS ( AmountAvailable )
           WITH VALUE #( ( %tky            = <item>-%tky
                           AmountAvailable = new_amount
-                          AdventurerId    = lv_adventurer_id
                ) )
         REPORTED DATA(rep_item)
         FAILED   DATA(fail_item).

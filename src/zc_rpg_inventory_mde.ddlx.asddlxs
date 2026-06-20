@@ -33,7 +33,7 @@ annotate entity ZC_RPG_INVENTORY with
   @UI.identification: [{ position: 60, label: 'Price' }]
   Price;
 
-  @UI.lineItem:       [{ position: 60, label: 'RequiredLevel' }]
-  @UI.identification: [{ position: 60, label: 'RequiredLevel' }]
+  @UI.lineItem:       [{ position: 70, label: 'Required Level' }]
+  @UI.identification: [{ position: 70, label: 'Required Level' }]
   RequiredLevel;
 }

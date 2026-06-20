@@ -6,6 +6,7 @@ CLASS lhc_Adventurer DEFINITION INHERITING FROM cl_abap_behavior_handler.
 
     " Every 10 XP the adventurer gains one level; the remainder is kept
     CONSTANTS c_xp_per_level TYPE i VALUE 10.
+    CONSTANTS c_adventurer_class TYPE zrpg_adventurer-adventurer_class VALUE 'FIGHTER'.
 
     METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
       IMPORTING REQUEST requested_authorizations FOR Adventurer RESULT result.
@@ -17,8 +18,6 @@ CLASS lhc_Adventurer DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR ACTION Adventurer~joinGuild RESULT result.
     METHODS validateAdventurerInfo FOR VALIDATE ON SAVE
       IMPORTING keys FOR Adventurer~validateAdventurerInfo.
-    METHODS setDefaultClass FOR DETERMINE ON MODIFY
-      IMPORTING keys FOR Adventurer~setDefaultClass.
     METHODS acceptQuest FOR MODIFY
       IMPORTING keys FOR ACTION Adventurer~acceptQuest RESULT result.
     METHODS completeQuest FOR MODIFY
@@ -38,7 +37,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
 
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer
-        FIELDS ( AdventurerLevel AdventurerXp AdventurerGold )
+        FIELDS ( AdventurerLevel AdventurerXp AdventurerGold AdventurerClass )
         WITH CORRESPONDING #( keys )
       RESULT DATA(adventurers).
 
@@ -51,6 +50,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         AdventurerLevel = 1
         AdventurerXp    = 0
         AdventurerGold  = 0
+        AdventurerClass = c_adventurer_class
       ) TO updates.
     ENDLOOP.
 
@@ -58,7 +58,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
 
     MODIFY ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer
-        UPDATE FIELDS ( AdventurerLevel AdventurerXp )
+        UPDATE FIELDS ( AdventurerLevel AdventurerXp AdventurerGold )
         WITH updates
       REPORTED DATA(rep)
       FAILED   DATA(fail).
@@ -254,41 +254,6 @@ CLASS lhc_Adventurer IMPLEMENTATION.
 
     ENDLOOP.
 
-  ENDMETHOD.
-
-  METHOD setDefaultClass.
-    " ── Step 1: Read newly created adventurers ─────────────────────
-    READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
-      ENTITY Adventurer
-        FIELDS ( AdventurerClass )
-        WITH CORRESPONDING #( keys )
-      RESULT DATA(adventurers).
-
-    DATA updates TYPE TABLE FOR UPDATE zi_rpg_adventurer\\Adventurer.
-
-    LOOP AT adventurers ASSIGNING FIELD-SYMBOL(<adv>).
-
-      " Only set default if no class was already provided
-      CHECK <adv>-AdventurerClass IS INITIAL.
-
-      APPEND VALUE #(
-        %tky            = <adv>-%tky
-        AdventurerClass = 'FIGHTER'   " Default D&D class
-      ) TO updates.
-
-    ENDLOOP.
-
-    CHECK updates IS NOT INITIAL.
-
-    MODIFY ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
-      ENTITY Adventurer
-        UPDATE FIELDS ( AdventurerClass )
-        WITH updates
-      REPORTED DATA(rep)
-      FAILED   DATA(fail).
-
-    reported-Adventurer = CORRESPONDING #(
-      BASE ( reported-Adventurer ) rep-Adventurer ).
   ENDMETHOD.
 
   METHOD acceptQuest.
