@@ -15,8 +15,8 @@ CLASS lhc_Adventurer DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR Adventurer~initAdventurer.
     METHODS joinGuild FOR MODIFY
       IMPORTING keys FOR ACTION Adventurer~joinGuild RESULT result.
-    METHODS validateAdventurerName FOR VALIDATE ON SAVE
-      IMPORTING keys FOR Adventurer~validateAdventurerName.
+    METHODS validateAdventurerInfo FOR VALIDATE ON SAVE
+      IMPORTING keys FOR Adventurer~validateAdventurerInfo.
     METHODS setDefaultClass FOR DETERMINE ON MODIFY
       IMPORTING keys FOR Adventurer~setDefaultClass.
     METHODS acceptQuest FOR MODIFY
@@ -166,11 +166,11 @@ CLASS lhc_Adventurer IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD validateAdventurerName.
+  METHOD validateAdventurerInfo.
     " ── Step 1: Read the adventurer name ──────────────────────────
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer
-        FIELDS ( AdventurerName )
+        FIELDS ( AdventurerName AdventurerClass )
         WITH CORRESPONDING #( keys )
       RESULT DATA(adventurers).
 
@@ -178,6 +178,19 @@ CLASS lhc_Adventurer IMPLEMENTATION.
     LOOP AT adventurers ASSIGNING FIELD-SYMBOL(<adv>).
 
       DATA(lv_name) = <adv>-AdventurerName.
+      DATA(lv_class) = <adv>-AdventurerClass.
+
+      IF lv_class IS INITIAL.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky                    = <adv>-%tky
+          %msg                    = new_message_with_text(
+                                      severity = if_abap_behv_message=>severity-error
+                                      text     = 'Adventurer class cannot be empty.' )
+          %element-AdventurerClass = if_abap_behv=>mk-on
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
 
       " Rule 1: name must not be empty
       IF lv_name IS INITIAL.

@@ -100,11 +100,51 @@ CLASS lhc_Marketplace IMPLEMENTATION.
   METHOD validateItemValues.
     READ ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
        ENTITY Marketplace
-       FIELDS ( RequiredLevel Price AmountAvailable ItemName )
+       FIELDS ( RequiredLevel Price AmountAvailable ItemName ItemType ItemSubtype )
        WITH CORRESPONDING #( keys )
        RESULT DATA(market).
 
     LOOP AT market ASSIGNING FIELD-SYMBOL(<market>).
+    DATA(lv_name) = <market>-ItemName.
+    DATA(lv_itemtype) = <market>-ItemType.
+    DATA(lv_itemsubtype) = <market>-ItemSubtype.
+
+
+    IF lv_name IS INITIAL.
+        APPEND VALUE #( %tky = <market>-%tky ) TO failed-Marketplace.
+        APPEND VALUE #(
+          %tky                    = <market>-%tky
+          %msg                    = new_message_with_text(
+                                      severity = if_abap_behv_message=>severity-error
+                                      text     = 'Item name cannot be empty.' )
+          %element-ItemName = if_abap_behv=>mk-on
+        ) TO reported-Marketplace.
+        CONTINUE.
+      ENDIF.
+
+    IF lv_itemtype = ''.
+        APPEND VALUE #( %tky = <market>-%tky ) TO failed-Marketplace.
+        APPEND VALUE #(
+          %tky                    = <market>-%tky
+          %msg                    = new_message_with_text(
+                                      severity = if_abap_behv_message=>severity-error
+                                      text     = 'Item type cannot be empty.' )
+          %element-ItemType = if_abap_behv=>mk-on
+        ) TO reported-Marketplace.
+        CONTINUE.
+      ENDIF.
+
+      IF lv_itemsubtype = ''.
+        APPEND VALUE #( %tky = <market>-%tky ) TO failed-Marketplace.
+        APPEND VALUE #(
+          %tky                    = <market>-%tky
+          %msg                    = new_message_with_text(
+                                      severity = if_abap_behv_message=>severity-error
+                                      text     = 'Item subtype cannot be empty.' )
+          %element-ItemSubtype = if_abap_behv=>mk-on
+        ) TO reported-Marketplace.
+        CONTINUE.
+      ENDIF.
 
       IF <market>-AmountAvailable < 1.
         APPEND VALUE #( %tky = <market>-%tky ) TO failed-Marketplace.
@@ -113,16 +153,6 @@ CLASS lhc_Marketplace IMPLEMENTATION.
           %msg                   = new_message_with_text(
                                      severity = if_abap_behv_message=>severity-error
                                      text     = 'There must be at least 1 item in the stock.' )
-        ) TO reported-Marketplace.
-      ENDIF.
-
-      IF strlen(  <market>-ItemName  ) = 0.
-        APPEND VALUE #( %tky = <market>-%tky ) TO failed-Marketplace.
-        APPEND VALUE #(
-          %tky                   = <market>-%tky
-          %msg                   = new_message_with_text(
-                                     severity = if_abap_behv_message=>severity-error
-                                     text     = 'Please insert a name for the item.' )
         ) TO reported-Marketplace.
       ENDIF.
 

@@ -271,13 +271,22 @@ CLASS lhc_Quest IMPLEMENTATION.
 
     READ ENTITIES OF zi_rpg_quest IN LOCAL MODE
       ENTITY Quest
-        FIELDS ( RequiredLevel XpReward GoldReward )
+        FIELDS ( RequiredLevel XpReward GoldReward QuestName )
         WITH CORRESPONDING #( keys )
       RESULT DATA(quests).
 
 
     LOOP AT quests ASSIGNING FIELD-SYMBOL(<quest>).
-
+      IF <quest>-QuestName IS INITIAL.
+        APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
+        APPEND VALUE #(
+          %tky                   = <quest>-%tky
+          %msg                   = new_message_with_text(
+                                     severity = if_abap_behv_message=>severity-error
+                                     text     = 'Please provide a name for this quest.' )
+          %element-RequiredLevel = if_abap_behv=>mk-on
+        ) TO reported-Quest.
+      ENDIF.
       IF <quest>-RequiredLevel < 1.
         APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
         APPEND VALUE #(

@@ -19,7 +19,7 @@ etag master LastChangedAt
   draft action Resume;
   draft determine action Prepare
   {
-    validation validateAdventurerName;
+    validation validateAdventurerInfo;
   }
 
 
@@ -42,7 +42,7 @@ etag master LastChangedAt
   //  " Sets Level=1, XP=0 on every new adventurer
   determination initAdventurer on modify { create; }
 
-  validation validateAdventurerName on save {create; field AdventurerName; }
+  validation validateAdventurerInfo on save {create; field AdventurerName; field AdventurerClass;}
 
   determination setDefaultClass on modify { create; }
 
