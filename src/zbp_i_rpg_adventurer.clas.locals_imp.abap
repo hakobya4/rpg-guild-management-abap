@@ -61,8 +61,6 @@ CLASS lhc_Adventurer DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR ACTION Adventurer~completeQuest RESULT result.
     METHODS buyItem FOR MODIFY
       IMPORTING keys FOR ACTION Adventurer~buyItem RESULT result.
-    METHODS sellItem FOR MODIFY
-      IMPORTING keys FOR ACTION Adventurer~sellItem RESULT result.
 
 ENDCLASS.
 
@@ -703,120 +701,5 @@ CLASS lhc_Adventurer IMPLEMENTATION.
     result = VALUE #( FOR adv IN result_adventurers
                       ( %tky   = adv-%tky
                         %param = CORRESPONDING #( adv ) ) ).
-  ENDMETHOD.
-
-  METHOD sellItem.
-    READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
-      ENTITY Adventurer
-        FIELDS ( AdventurerName AdventurerGold )
-        WITH CORRESPONDING #( keys )
-      RESULT DATA(adventurers).
-
-    LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
-
-      READ TABLE adventurers ASSIGNING FIELD-SYMBOL(<adv>)
-        WITH KEY %tky = <key>-%tky.
-      CHECK sy-subrc = 0.
-
-      DATA(lv_item_id) = <key>-%param-ItemId.
-      IF lv_item_id IS INITIAL.
-        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
-        APPEND VALUE #( %tky = <adv>-%tky  %action-sellItem = if_abap_behv=>mk-on
-          %msg = new_message_with_text( severity = if_abap_behv_message=>severity-error
-                                        text = 'Please select an item to sell.' ) ) TO reported-Adventurer.
-        CONTINUE.
-      ENDIF.
-
-      " Read THIS adventurer's inventory row (key + ownership in one WHERE)
-      SELECT SINGLE inventory_id, item_name, price, amount
-        FROM zrpg_inventory
-        WHERE item_id      = @lv_item_id
-          AND adventurerid = @<adv>-AdventurerId
-        INTO @DATA(inv).
-
-      IF sy-subrc <> 0.
-        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
-        APPEND VALUE #( %tky = <adv>-%tky  %action-sellItem = if_abap_behv=>mk-on
-          %msg = new_message_with_text( severity = if_abap_behv_message=>severity-error
-                                        text = 'That item is not in your inventory.' ) ) TO reported-Adventurer.
-        CONTINUE.
-      ENDIF.
-
-      " ── Validate the amount FIRST ──
-      DATA(lv_amount_sold) = <key>-%param-Amount.
-      IF lv_amount_sold < 1.
-        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
-        APPEND VALUE #( %tky = <adv>-%tky  %action-sellItem = if_abap_behv=>mk-on
-          %msg = new_message_with_text( severity = if_abap_behv_message=>severity-error
-                                        text = 'Enter how many to sell (at least 1).' ) ) TO reported-Adventurer.
-        CONTINUE.
-      ENDIF.
-      IF lv_amount_sold > inv-amount.
-        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
-        APPEND VALUE #( %tky = <adv>-%tky  %action-sellItem = if_abap_behv=>mk-on
-          %msg = new_message_with_text( severity = if_abap_behv_message=>severity-error
-                                        text = |You only own { inv-amount } of '{ inv-item_name }'.| ) ) TO reported-Adventurer.
-        CONTINUE.
-      ENDIF.
-
-      DATA(lv_refund) = lv_amount_sold * inv-price.
-      DATA(new_gold)  = <adv>-AdventurerGold + lv_refund.
-
-      " ── Remove or reduce the stack, keyed by InventoryId ──
-      DATA inv_failed TYPE RESPONSE FOR FAILED zi_rpg_inventory.
-      IF lv_amount_sold = inv-amount.
-        MODIFY ENTITIES OF zi_rpg_inventory
-          ENTITY Inventory
-            DELETE FROM VALUE #( ( InventoryId = inv-inventory_id ) )
-          FAILED inv_failed REPORTED DATA(rep_del).
-      ELSE.
-        MODIFY ENTITIES OF zi_rpg_inventory
-          ENTITY Inventory
-            UPDATE FIELDS ( Amount )
-            WITH VALUE #( ( InventoryId = inv-inventory_id
-                            Amount      = inv-amount - lv_amount_sold ) )
-          FAILED inv_failed REPORTED DATA(rep_upd).
-      ENDIF.
-
-      IF inv_failed-Inventory IS NOT INITIAL.
-        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
-        CONTINUE.
-      ENDIF.
-
-      " ── Credit gold (own BO → local mode) ──
-      MODIFY ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
-        ENTITY Adventurer
-          UPDATE FIELDS ( AdventurerGold )
-          WITH VALUE #( ( %tky = <adv>-%tky  AdventurerGold = new_gold ) )
-        REPORTED DATA(rep_gold) FAILED DATA(fail_gold).
-      reported-Adventurer = CORRESPONDING #( BASE ( reported-Adventurer ) rep_gold-Adventurer ).
-
-      APPEND VALUE #( %tky = <adv>-%tky
-        %msg = new_message_with_text( severity = if_abap_behv_message=>severity-success
-          text = |Sold { lv_amount_sold }x '{ inv-item_name }' for { lv_refund } gold.| ) ) TO reported-Adventurer.
-
-      SELECT SINGLE amount_available
-          FROM zrpg_marketplace
-          WHERE item_id = @lv_item_id
-            INTO @DATA(item_available).
-
-      MODIFY ENTITIES OF zi_rpg_marketplace
-         ENTITY Marketplace
-           UPDATE FIELDS ( AmountAvailable )
-           WITH VALUE #( ( ItemId = lv_item_id  AmountAvailable = item_available + lv_amount_sold ) )
-         REPORTED DATA(rep_amount) FAILED DATA(fail_amount).
-
-      IF fail_amount-Marketplace IS NOT INITIAL.
-        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
-        CONTINUE.
-      ENDIF.
-
-    ENDLOOP.
-
-    READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
-      ENTITY Adventurer ALL FIELDS WITH CORRESPONDING #( keys )
-      RESULT DATA(result_adventurers).
-    result = VALUE #( FOR adv IN result_adventurers
-                      ( %tky = adv-%tky  %param = CORRESPONDING #( adv ) ) ).
   ENDMETHOD.
 ENDCLASS.

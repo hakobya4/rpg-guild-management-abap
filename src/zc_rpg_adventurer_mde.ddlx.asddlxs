@@ -117,12 +117,8 @@ annotate view ZC_RPG_ADVENTURER with
     position:   40,
     label:      'Buy Item',
     type:       #FOR_ACTION,
-    dataAction: 'buyItem' },
-  {
-    position:   50,
-    label:      'Sell Item',
-    type:       #FOR_ACTION,
-    dataAction: 'sellItem' }]
+    dataAction: 'buyItem' }
+    ]
 
   AdventurerId;
 

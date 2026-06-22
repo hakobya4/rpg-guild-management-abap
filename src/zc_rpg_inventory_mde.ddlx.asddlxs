@@ -36,4 +36,9 @@ annotate entity ZC_RPG_INVENTORY with
   @UI.lineItem:       [{ position: 70, label: 'Required Level' }]
   @UI.identification: [{ position: 70, label: 'Required Level' }]
   RequiredLevel;
+  
+    @UI.lineItem: [{ type:       #FOR_ACTION,
+                   dataAction: 'sellItem',
+                   label:      'Sell' }]
+  InventoryId;
 }

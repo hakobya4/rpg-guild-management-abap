@@ -17,4 +17,4 @@ define view entity ZI_RPG_INV_VH
       amount       as Amount,
       adventurerid as AdventurerId
 }
-where amount > 0
+where amount > 0 

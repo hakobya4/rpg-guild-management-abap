@@ -15,6 +15,9 @@ etag master LastChangedAt
   field ( readonly ) CreatedAt, CreatedBy, LastChangedAt,
                      LastChangedBy, LocalLastChangedAt;
 
+  action sellItem parameter ZI_RPG_SELL_PARAM;
+
+
   mapping for zrpg_inventory
   {
     InventoryId        = inventory_id;
