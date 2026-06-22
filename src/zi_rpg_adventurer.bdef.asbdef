@@ -1,4 +1,4 @@
-managed implementation in class ZBP_I_RPG_ADVENTURER unique;
+managed with additional save implementation in class ZBP_I_RPG_ADVENTURER unique;
 strict ( 2 );
 with draft;
 
@@ -38,6 +38,7 @@ etag master LastChangedAt
   action completeQuest parameter ZI_RPG_ACCEPT_QUEST_PARAM result [1] $self;
 
   action buyItem parameter ZI_RPG_BUY_ITEM_PARAM result [1] $self;
+  action sellItem parameter ZI_RPG_SELL_PARAM result [1] $self;
 
   //  " Sets Level=1, XP=0 on every new adventurer
   determination initAdventurer on modify { create; }

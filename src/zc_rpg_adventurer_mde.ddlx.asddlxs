@@ -96,27 +96,33 @@ annotate view ZC_RPG_ADVENTURER with
 
 
   @UI.identification: [{
-    position:   60,
+    position:   10,
     label:      'Join Guild',
     type:       #FOR_ACTION,
     dataAction: 'joinGuild'
   },
   {
-     position:   70,
-     label:      'Take Quest',
-     type:       #FOR_ACTION,
-     dataAction: 'acceptQuest'
-      },
-      {
-        position:   80,
-        label:      'Complete Quest',
-        type:       #FOR_ACTION,
-        dataAction: 'completeQuest'
-      },
-      {     position:   90,
-        label:      'Buy Item',
-        type:       #FOR_ACTION,
-        dataAction: 'buyItem' }]
+    position:   20,
+    label:      'Take Quest',
+    type:       #FOR_ACTION,
+    dataAction: 'acceptQuest'
+  },
+  {
+    position:   30,
+    label:      'Complete Quest',
+    type:       #FOR_ACTION,
+    dataAction: 'completeQuest'
+  },
+  {
+    position:   40,
+    label:      'Buy Item',
+    type:       #FOR_ACTION,
+    dataAction: 'buyItem' },
+  {
+    position:   50,
+    label:      'Sell Item',
+    type:       #FOR_ACTION,
+    dataAction: 'sellItem' }]
 
   AdventurerId;
 

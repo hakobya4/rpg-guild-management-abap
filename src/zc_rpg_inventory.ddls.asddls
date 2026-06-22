@@ -15,10 +15,5 @@ define root view entity ZC_RPG_INVENTORY
       Amount,
       Price,
       RequiredLevel,
-      CreatedAt,
-      CreatedBy,
-      LastChangedAt,
-      LastChangedBy,
-      LocalLastChangedAt,
       _Adventurer : redirected to ZC_RPG_ADVENTURER
 }

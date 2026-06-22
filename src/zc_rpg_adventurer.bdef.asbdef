@@ -17,6 +17,7 @@ define behavior for ZC_RPG_ADVENTURER alias Adventurer
   use action acceptQuest;
   use action completeQuest;
   use action buyItem;
+  use action sellItem;
 
   // Level and XP are managed by the application (defaults + quest rewards)
   field ( readonly ) AdventurerLevel, AdventurerXp, AdventurerGold;
@@ -25,6 +26,7 @@ define behavior for ZC_RPG_ADVENTURER alias Adventurer
   side effects
   {
     action buyItem affects entity _Inventory, entity _Marketplace, field AdventurerGold;
+    action sellItem affects entity _Inventory, entity _Marketplace, field AdventurerGold;
     action acceptQuest affects entity _Quest, entity _AvailableQuest;
     action completeQuest affects entity _Quest, field AdventurerLevel, field AdventurerXp, field AdventurerGold;
     action joinGuild affects field GuildName;
