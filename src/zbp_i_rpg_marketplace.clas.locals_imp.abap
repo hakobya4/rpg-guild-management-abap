@@ -21,12 +21,50 @@ CLASS lhc_Marketplace DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR Marketplace~validateItemValues.
     METHODS buyItem FOR MODIFY
       IMPORTING keys FOR ACTION Marketplace~buyItem RESULT result.
+    METHODS restock FOR MODIFY
+      IMPORTING keys FOR ACTION Marketplace~restock.
 
 ENDCLASS.
 
 CLASS lhc_Marketplace IMPLEMENTATION.
 
   METHOD get_global_authorizations.
+  ENDMETHOD.
+
+  METHOD restock.
+    " Add units back to the shop and make the item available again.
+    " Runs in local mode, so it may set the readonly Status field.
+    READ ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
+      ENTITY Marketplace
+        FIELDS ( AmountAvailable )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(items).
+
+    DATA updates TYPE TABLE FOR UPDATE zi_rpg_marketplace\\Marketplace.
+
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
+      READ TABLE items ASSIGNING FIELD-SYMBOL(<item>)
+        WITH KEY %tky = <key>-%tky.
+      CHECK sy-subrc = 0.
+
+      DATA(lv_add) = <key>-%param-Amount.
+      IF lv_add < 1.
+        lv_add = 1.
+      ENDIF.
+
+      APPEND VALUE #( %tky            = <item>-%tky
+                      AmountAvailable = <item>-AmountAvailable + lv_add
+                      Status          = c_status_available ) TO updates.
+    ENDLOOP.
+
+    CHECK updates IS NOT INITIAL.
+
+    MODIFY ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
+      ENTITY Marketplace
+        UPDATE FIELDS ( AmountAvailable Status ) WITH updates
+      REPORTED DATA(rep) FAILED DATA(fail).
+
+    reported-Marketplace = CORRESPONDING #( BASE ( reported-Marketplace ) rep-Marketplace ).
   ENDMETHOD.
 
 
@@ -341,3 +379,4 @@ CLASS lhc_Marketplace IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+

@@ -28,6 +28,7 @@ etag master LastChangedAt
   field ( mandatory ) ItemName, RequiredLevel, Price, AmountAvailable, ItemType, ItemSubtype;
   field ( readonly ) Status, AdventurerId;
   action buyItem parameter ZI_RPG_BUY_MKT_PARAM result [1] $self;
+  action restock parameter ZI_RPG_SELL_PARAM;
 
 
   validation validateItemValues on save { create; field ItemName, RequiredLevel, Price; }
