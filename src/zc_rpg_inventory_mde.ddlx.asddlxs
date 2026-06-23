@@ -20,15 +20,15 @@ annotate entity ZC_RPG_INVENTORY with
   @UI.lineItem:       [{ position: 30, label: 'Subtype' }]
   @UI.identification: [{ position: 30, label: 'Subtype' }]
   ItemSubtype;
-  
+
   @UI.lineItem:       [{ position: 40, label: 'Description' }]
   @UI.identification: [{ position: 40, label: 'Description' }]
   Description;
-  
+
   @UI.lineItem:       [{ position: 50, label: 'Amount Owned' }]
   @UI.identification: [{ position: 50, label: 'Amount Owned' }]
   Amount;
-  
+
   @UI.lineItem:       [{ position: 60, label: 'Price' }]
   @UI.identification: [{ position: 60, label: 'Price' }]
   Price;
@@ -36,9 +36,10 @@ annotate entity ZC_RPG_INVENTORY with
   @UI.lineItem:       [{ position: 70, label: 'Required Level' }]
   @UI.identification: [{ position: 70, label: 'Required Level' }]
   RequiredLevel;
-  
-    @UI.lineItem: [{ type:       #FOR_ACTION,
+
+  @UI.lineItem: [{ type:       #FOR_ACTION,
                    dataAction: 'sellItem',
-                   label:      'Sell' }]
+                   label:      'Sell',
+                   inline:     true }]
   InventoryId;
 }
