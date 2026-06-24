@@ -7,7 +7,7 @@ CLASS lsc_zi_rpg_adventurer DEFINITION INHERITING FROM cl_abap_behavior_saver.
 ENDCLASS.
 
 CLASS lsc_zi_rpg_adventurer IMPLEMENTATION.
-  " When an adventurer is deleted, return all their inventory items to the marketplace
+  " When an adventurer is deleted, return all their inventory items to the marketplace and all the quest items in progress to quests
   METHOD save_modified.
     LOOP AT delete-Adventurer INTO DATA(deleted_adv).
 
@@ -25,11 +25,24 @@ CLASS lsc_zi_rpg_adventurer IMPLEMENTATION.
           WHERE item_id = @inv_item-item_id.
       ENDLOOP.
 
-      " Remove the orphaned inventory rows
+      "Items to be returned to quest
+      SELECT quest_id, status
+        FROM zrpg_quest
+        WHERE adventurer_id = @deleted_adv-AdventurerId AND status = 'IN_PROGRESS'
+        INTO TABLE @DATA(adv_quest_incomp).
+
+      "Return the in progress quests to quest buisiness object
+      LOOP AT adv_quest_incomp INTO DATA(adv_quest).
+        UPDATE zrpg_quest
+          SET  status   = 'OPEN', adventurer_id =  @( VALUE sysuuid_x16( ) )
+          WHERE quest_id = @adv_quest-quest_id.
+      ENDLOOP.
+
+      " Remove the inventory and quests that are not useful
       DELETE FROM zrpg_inventory
         WHERE adventurerid = @deleted_adv-AdventurerId.
       DELETE FROM zrpg_quest
-        WHERE adventurer_id = @deleted_adv-AdventurerId.
+        WHERE adventurer_id = @deleted_adv-AdventurerId .
 
     ENDLOOP.
 
@@ -37,8 +50,6 @@ CLASS lsc_zi_rpg_adventurer IMPLEMENTATION.
 
 ENDCLASS.
 
-*"* use this source file for the definition and implementation of
-*"* local helper classes, interface definitions and type declarations
 
 CLASS lhc_Adventurer DEFINITION INHERITING FROM cl_abap_behavior_handler.
   PRIVATE SECTION.
@@ -67,7 +78,6 @@ ENDCLASS.
 CLASS lhc_Adventurer IMPLEMENTATION.
 
   METHOD get_global_authorizations.
-    " Empty — BTP trial permits all operations by default
   ENDMETHOD.
 
   METHOD initAdventurer.
@@ -106,7 +116,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD joinGuild.
-    " ── Step 1: Read current adventurer data ──────────────────────
+    "  Read current adventurer data
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer
         FIELDS ( AdventurerName GuildId )
@@ -118,7 +128,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
 
     LOOP AT adventurers ASSIGNING FIELD-SYMBOL(<adv>).
 
-      " ── Step 2: Get the GuildId from the action parameter ───────
+      "  Get the GuildId
       DATA(lv_guild_id) = CONV sysuuid_x16( '' ).
       LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
         IF <key>-%tky = <adv>-%tky.
@@ -127,7 +137,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         ENDIF.
       ENDLOOP.
 
-      " ── Step 3: Validate the guild exists ───────────────────────
+      " Validate the guild exists
       SELECT SINGLE guild_id, guild_name
       FROM zrpg_guild
       WHERE guild_id = @lv_guild_id
@@ -145,7 +155,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      " ── Step 4: Validate not already in this guild ──────────────
+      " Validate not already in this guild
       IF <adv>-GuildId = lv_guild_id.
         APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
@@ -153,13 +163,12 @@ CLASS lhc_Adventurer IMPLEMENTATION.
           %action-joinGuild = if_abap_behv=>mk-on
           %msg              = new_message_with_text(
                                 severity = if_abap_behv_message=>severity-error
-                                text     = |{ <adv>-AdventurerName } is already|
-                                        && | a member of { guild_data-guild_name }.| )
+                                text     = |{ <adv>-AdventurerName } is already a member of { guild_data-guild_name }.| )
         ) TO reported-Adventurer.
         CONTINUE.
       ENDIF.
 
-      " ── Step 5: Join the guild ──────────────────────────────────
+      " Join the guild
       APPEND VALUE #(
         %tky    = <adv>-%tky
         GuildId = lv_guild_id
@@ -170,13 +179,12 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         %tky = <adv>-%tky
         %msg = new_message_with_text(
                  severity = if_abap_behv_message=>severity-success
-                 text     = |{ <adv>-AdventurerName } has joined|
-                         && | { guild_data-guild_name }! ⚔️| )
+                 text     = |{ <adv>-AdventurerName } has joined { guild_data-guild_name }! ⚔️| )
       ) TO reported-Adventurer.
 
     ENDLOOP.
 
-    " ── Step 6: Apply guild assignment ────────────────────────────
+    "  Apply guild assignment
     IF updates IS NOT INITIAL.
       MODIFY ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
         ENTITY Adventurer
@@ -191,7 +199,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         BASE ( failed-Adventurer ) fail-Adventurer ).
     ENDIF.
 
-    " ── Step 7: Return updated adventurer ─────────────────────────
+    " Return updated adventurer
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer ALL FIELDS
         WITH CORRESPONDING #( keys )
@@ -204,14 +212,14 @@ CLASS lhc_Adventurer IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD validateAdventurerInfo.
-    " ── Step 1: Read the adventurer name ──────────────────────────
+    " Read the adventurer name
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer
         FIELDS ( AdventurerName AdventurerClass )
         WITH CORRESPONDING #( keys )
       RESULT DATA(adventurers).
 
-    " ── Step 2: Check each instance ───────────────────────────────
+    "  Check each instance
     LOOP AT adventurers ASSIGNING FIELD-SYMBOL(<adv>).
 
       DATA(lv_name) = <adv>-AdventurerName.
@@ -229,7 +237,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      " Rule 1: name must not be empty
+      " name must not be empty
       IF lv_name IS INITIAL.
         APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
@@ -242,7 +250,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      " Rule 2: name must not contain numbers
+      " name must not contain numbers
       IF lv_name CA '0123456789'.
         APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
@@ -255,7 +263,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      " Rule 3: name must contain at least 3 letters
+      " name must contain at least 3 letters
       DATA lv_letter_count TYPE i.
       FIND ALL OCCURRENCES OF PCRE '[a-zA-Z]' IN lv_name
         MATCH COUNT lv_letter_count.
@@ -271,7 +279,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      " Rule 4: name must be unique (case-insensitive, ignoring this record)
+      "  name must be unique
       SELECT SINGLE adventurer_id
         FROM zrpg_adventurer
         WHERE upper( adventurer_name ) = @( to_upper( lv_name ) )
@@ -294,7 +302,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD acceptQuest.
-    " Read adventurer data ──────────────────────────────
+    " Read adventurer data
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer
         FIELDS ( AdventurerName AdventurerLevel )
@@ -307,9 +315,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         WITH KEY %tky = <key>-%tky.
       CHECK sy-subrc = 0.
 
-      " ── Step 2: Adventurer must be persisted before taking quests ─
-      " A draft that was never activated does not exist in the active
-      " table yet and therefore cannot accept quests.
+      " Adventurer must be activated/ created before taking quests .
       SELECT SINGLE @abap_true
         FROM zrpg_adventurer
         WHERE adventurer_id = @<adv>-AdventurerId
@@ -327,7 +333,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      " ── Step 3: Validate QuestId was provided ──────────────────
+      " Validate QuestId was provided
       DATA(lv_quest_id) = <key>-%param-QuestId.
       IF lv_quest_id IS INITIAL.
         APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
@@ -340,10 +346,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      " ── Step 4: Delegate to the Quest BO action ────────────────
-      " All quest-side rules (OPEN status, level requirement, not yet
-      " assigned) live in one place: Quest~acceptQuest. The RAP lock
-      " on the quest instance serializes concurrent accept attempts.
+      " Runs acceptQuest from Quest business object
       MODIFY ENTITIES OF zi_rpg_quest
         ENTITY Quest
           EXECUTE acceptQuest
@@ -352,7 +355,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         FAILED   DATA(quest_failed)
         REPORTED DATA(quest_reported).
 
-      " ── Step 5: Relay quest messages to the adventurer UI ──────
+      " Relay quest messages
       LOOP AT quest_reported-Quest ASSIGNING FIELD-SYMBOL(<quest_msg>).
         IF <quest_msg>-%msg IS BOUND.
           APPEND VALUE #( %tky = <adv>-%tky
@@ -367,7 +370,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
 
     ENDLOOP.
 
-    " ── Step 6: Return updated adventurer ───────────────────────
+    " Return updated adventurer
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer ALL FIELDS
         WITH CORRESPONDING #( keys )
@@ -379,7 +382,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD buyItem.
-    " Read adventurer data ──────────────────────────────
+    " Read adventurer data
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer
         FIELDS ( AdventurerName AdventurerLevel AdventurerGold )
@@ -392,9 +395,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         WITH KEY %tky = <key>-%tky.
       CHECK sy-subrc = 0.
 
-      "Adventurer must be persisted before buying items ─
-      " A draft that was never activated does not exist in the active
-      " table yet and therefore cannot buy items.
+      "Adventurer must exist
       SELECT SINGLE @abap_true
         FROM zrpg_adventurer
         WHERE adventurer_id = @<adv>-AdventurerId
@@ -412,7 +413,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      " Validate ItemId was provided ──────────────────
+      " Validate ItemId was provided
       DATA(lv_item_id) = <key>-%param-ItemId.
       IF lv_item_id IS INITIAL.
         APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
@@ -424,14 +425,13 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         ) TO reported-Adventurer.
         CONTINUE.
       ENDIF.
-      " Quantity from the action parameter (default 1)
+      " Amount of item
       DATA(lv_amount) = <key>-%param-Amount.
       IF lv_amount < 1.
         lv_amount = 1.
       ENDIF.
 
-      " Read the item price and check the adventurer can afford the TOTAL
-      " BEFORE the sale runs, so stock is not decremented on a failed buy.
+      " Checks on item requirments
       SELECT SINGLE item_name, item_type, item_subtype, description, required_level, price
         FROM zrpg_marketplace
         WHERE item_id = @lv_item_id
@@ -446,15 +446,13 @@ CLASS lhc_Adventurer IMPLEMENTATION.
           %action-buyItem = if_abap_behv=>mk-on
           %msg            = new_message_with_text(
                               severity = if_abap_behv_message=>severity-error
-                              text     = |{ <adv>-AdventurerName } cannot afford|
-                                      && | { lv_amount }x '{ item_data-item_name }'.|
-                                      && | Cost: { lv_total_cost },|
-                                      && | gold: { <adv>-AdventurerGold }.| )
+                              text     = |Not enough gold|
+                         )
         ) TO reported-Adventurer.
         CONTINUE.
       ENDIF.
 
-      " Delegate to the Marketplace BO action (passes the quantity)
+      " Marketpace uses buyItem
       MODIFY ENTITIES OF zi_rpg_marketplace
         ENTITY Marketplace
           EXECUTE buyItem
@@ -477,8 +475,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      " Sale succeeded — deduct the total cost from the adventurer's gold
-      " (own BO, local mode — done per purchase inside the loop).
+      " remove gold spent
       DATA(new_gold) = <adv>-AdventurerGold - lv_total_cost.
       MODIFY ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
         ENTITY Adventurer
@@ -498,8 +495,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
                  text     = |{ lv_total_cost } gold spent.|
                          && | { <adv>-AdventurerName } now has { new_gold } gold.| )
       ) TO reported-Adventurer.
-      " ── Add the bought units to the adventurer's inventory ─────
-      " One inventory row per (adventurer, item); accumulate the amount.
+      "update adventurer inventory from sale
       SELECT SINGLE inventory_id, amount
         FROM zrpg_inventory
         WHERE adventurerid = @<adv>-AdventurerId
@@ -507,7 +503,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         INTO @DATA(inv_row).
 
       IF sy-subrc = 0.
-        " Already owned — increase the quantity
+        " Already owned, do not create a new row, increase the quantity
         MODIFY ENTITIES OF zi_rpg_inventory
           ENTITY Inventory
             UPDATE FIELDS ( Amount )
@@ -516,7 +512,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
           REPORTED DATA(rep_inv_u)
           FAILED   DATA(fail_inv_u).
       ELSE.
-        " First time owning this item — create a new inventory row
+        " First time owning this item, create a new row
         MODIFY ENTITIES OF zi_rpg_inventory
           ENTITY Inventory
             CREATE FIELDS ( AdventurerId ItemId ItemName ItemType ItemSubtype Description Amount RequiredLevel Price )
