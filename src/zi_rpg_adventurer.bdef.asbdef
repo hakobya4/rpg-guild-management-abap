@@ -34,8 +34,6 @@ etag master LastChangedAt
   action joinGuild parameter ZI_RPG_JOIN_GUILD_PARAM result [1] $self;
   // Accept an available quest — assigns it to this adventurer
   action acceptQuest parameter ZI_RPG_ACCEPT_QUEST_PARAM result [1] $self;
-  // Complete one of this adventurer's IN_PROGRESS quests
-  action completeQuest parameter ZI_RPG_ACCEPT_QUEST_PARAM result [1] $self;
 
   action buyItem parameter ZI_RPG_BUY_ITEM_PARAM result [1] $self;
   //  " Sets Level=1, XP=0 on every new adventurer

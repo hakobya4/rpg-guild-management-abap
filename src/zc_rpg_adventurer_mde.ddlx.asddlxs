@@ -108,12 +108,6 @@ annotate view ZC_RPG_ADVENTURER with
     dataAction: 'acceptQuest'
   },
   {
-    position:   30,
-    label:      'Complete Quest',
-    type:       #FOR_ACTION,
-    dataAction: 'completeQuest'
-  },
-  {
     position:   40,
     label:      'Buy Item',
     type:       #FOR_ACTION,
