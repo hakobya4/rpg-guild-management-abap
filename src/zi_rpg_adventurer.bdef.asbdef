@@ -32,7 +32,7 @@ etag master LastChangedAt
 
   //  Select a guild from the guild list and join it
   action joinGuild parameter ZI_RPG_JOIN_GUILD_PARAM result [1] $self;
-  action quitGuild parameter ZI_RPG_JOIN_GUILD_PARAM result [1] $self;
+  action quitGuild result [1] $self;
   // Accept an available quest — assigns it to this adventurer
   action acceptQuest parameter ZI_RPG_ACCEPT_QUEST_PARAM result [1] $self;
 

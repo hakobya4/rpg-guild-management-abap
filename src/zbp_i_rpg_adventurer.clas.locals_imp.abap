@@ -602,6 +602,15 @@ CLASS lhc_Adventurer IMPLEMENTATION.
       FAILED   DATA(fail).
 
     reported-Adventurer = CORRESPONDING #( BASE ( reported-Adventurer ) rep-Adventurer ).
+
+    READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
+      ENTITY Adventurer ALL FIELDS
+      WITH CORRESPONDING #( keys )
+    RESULT DATA(result_adventurers).
+
+    result = VALUE #( FOR adv IN result_adventurers
+                      ( %tky   = adv-%tky
+                        %param = CORRESPONDING #( adv ) ) ).
   ENDMETHOD.
 
 ENDCLASS.
