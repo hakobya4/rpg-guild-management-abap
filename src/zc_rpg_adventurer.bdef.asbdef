@@ -14,6 +14,7 @@ define behavior for ZC_RPG_ADVENTURER alias Adventurer
   use action Resume;
   use action Prepare;
   use action joinGuild;
+  use action quitGuild;
   use action acceptQuest;
   use action buyItem;
 
@@ -26,6 +27,7 @@ define behavior for ZC_RPG_ADVENTURER alias Adventurer
     action buyItem affects entity _Inventory, entity _Marketplace, field AdventurerGold;
     action acceptQuest affects entity _Quest, entity _AvailableQuest;
     action joinGuild affects field GuildName;
+    action quitGuild affects field GuildName;
   }
 
 }

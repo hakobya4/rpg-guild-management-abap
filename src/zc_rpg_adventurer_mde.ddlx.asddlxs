@@ -23,33 +23,38 @@ annotate view ZC_RPG_ADVENTURER with
       position: 20, targetQualifier: 'GameStats'
     },
     {
+      id: 'MyGuild', purpose: #STANDARD,
+      type: #FIELDGROUP_REFERENCE, label: 'MyGuild',
+      position: 30, targetQualifier: 'MyGuild'
+    },
+    {
       id: 'GuildInfo', purpose: #STANDARD,
-      type: #FIELDGROUP_REFERENCE, label: 'Guild Membership',
-      position: 30, targetQualifier: 'GuildInfo'
+      type: #LINEITEM_REFERENCE, label: 'Guilds Avialable',
+      position: 40, targetElement: '_Guild'
     },
    {
   //    " Quests this adventurer has accepted
     id: 'MyQuests', purpose: #STANDARD,
     type: #LINEITEM_REFERENCE, label: 'My Quests',
-    position: 40, targetElement: '_Quest'
+    position: 50, targetElement: '_Quest'
   },
   {
   //    " All OPEN quests available to take
     id: 'AvailableQuests', purpose: #STANDARD,
     type: #LINEITEM_REFERENCE, label: 'Available Quests',
-    position: 50, targetElement: '_AvailableQuest'
+    position: 60, targetElement: '_AvailableQuest'
   },
      {
   //    " Items this adventurer has bought
     id: 'Inventory', purpose: #STANDARD,
     type: #LINEITEM_REFERENCE, label: 'Inventory',
-    position: 60, targetElement: '_Inventory'
+    position: 70, targetElement: '_Inventory'
   },
   {
   //    " All items available to take
     id: 'Marektplace', purpose: #STANDARD,
     type: #LINEITEM_REFERENCE, label: 'Marketplace',
-    position: 70, targetElement: '_Marketplace'
+    position: 80, targetElement: '_Marketplace'
   }
   ]
   @UI.lineItem:       [{ position: 10, label: 'Name' }]
@@ -89,9 +94,9 @@ annotate view ZC_RPG_ADVENTURER with
   @UI.fieldGroup:     [{ qualifier: 'GameStats', position: 20, label: 'Total Gold' }]
   AdventurerGold;
 
-  @UI.lineItem:       [{ position: 50, label: 'Guild' }]
+  @UI.lineItem:       [{ position: 50, label: 'MyGuild' }]
   @UI.identification: [{ position: 50, label: 'Current Guild' }]
-  @UI.fieldGroup:     [{ qualifier: 'GuildInfo', position: 10, label: 'Current Guild' }]
+  @UI.fieldGroup:     [{ qualifier: 'MyGuild', position: 10, label: 'Current Guild' }]
   GuildName;
 
 
@@ -103,6 +108,12 @@ annotate view ZC_RPG_ADVENTURER with
   },
   {
     position:   20,
+    label:      'Quit Guild',
+    type:       #FOR_ACTION,
+    dataAction: 'quitGuild'
+  },
+  {
+    position:   30,
     label:      'Take Quest',
     type:       #FOR_ACTION,
     dataAction: 'acceptQuest'

@@ -9,8 +9,8 @@ define root view entity ZI_RPG_ADVENTURER
   //  " Join guild table to get the guild name directly
   left outer join zrpg_guild on zrpg_adventurer.guild_id = zrpg_guild.guild_id
 
-  association [0..1] to ZI_RPG_GUILD as _Guild          on $projection.GuildId = _Guild.GuildId
-
+  association [0..*] to ZI_RPG_GUILD as _Guild          on _Guild.GuildId = _Guild.GuildId
+  association [0..1] to ZI_RPG_GUILD as _myGuild        on $projection.GuildId = _myGuild.GuildId
   association [0..*] to ZI_RPG_QUEST as _Quest          on $projection.AdventurerId = _Quest.AdventurerId
 
   //  " All OPEN quests available to take
@@ -42,6 +42,7 @@ define root view entity ZI_RPG_ADVENTURER
       zrpg_adventurer.local_last_changed_at as LocalLastChangedAt,
 
       _Guild,
+      _myGuild,
       _Quest,
       _AvailableQuest,
       _Inventory,

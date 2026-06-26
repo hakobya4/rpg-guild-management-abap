@@ -8,7 +8,6 @@ CLASS lhc_Guild DEFINITION INHERITING FROM cl_abap_behavior_handler.
 
     METHODS validateGuildName FOR VALIDATE ON SAVE
       IMPORTING keys FOR Guild~validateGuildName.
-
     " Blocks deletion of guilds that still have members
     METHODS precheck_delete FOR PRECHECK
       IMPORTING keys FOR DELETE Guild.
@@ -108,6 +107,8 @@ CLASS lhc_Guild IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+
+
 
 ENDCLASS.
 

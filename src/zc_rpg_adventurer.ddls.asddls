@@ -8,7 +8,7 @@ define root view entity ZC_RPG_ADVENTURER
 {
   key AdventurerId,
 
-      @ObjectModel.text.association: '_Guild'
+      @ObjectModel.text.association: '_myGuild'
       GuildId,
       GuildName,
       AdventurerName,
@@ -18,6 +18,7 @@ define root view entity ZC_RPG_ADVENTURER
       AdventurerGold,
 
       _Guild          : redirected to ZC_RPG_GUILD,
+      _myGuild        : redirected to ZC_RPG_GUILD,
       _Quest          : redirected to ZC_RPG_QUEST,
       _AvailableQuest : redirected to ZC_RPG_QUEST,
       _Inventory      : redirected to ZC_RPG_INVENTORY,

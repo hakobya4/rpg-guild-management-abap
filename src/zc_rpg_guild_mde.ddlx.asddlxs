@@ -34,6 +34,4 @@ annotate view ZC_RPG_GUILD with
   @UI.fieldGroup:     [{ qualifier: 'GuildDetails', position: 20, label: 'Description' }]
   Description;
 
-  @UI.lineItem:       [{ position: 30, label: 'Created At' }]
-  CreatedAt;
 }
