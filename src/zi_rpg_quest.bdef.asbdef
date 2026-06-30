@@ -30,10 +30,12 @@ etag master LastChangedAt
   // Lifecycle fields are only changed by the actions below
   field ( readonly ) Status, AdventurerId;
 
-  // Assigns the quest to an adventurer (rules: OPEN, unassigned, level check)
+  // Assigns the quest to an adventurer
   action acceptQuest parameter ZI_RPG_ASSIGN_ADV_PARAM result [1] $self;
-  // Marks the quest COMPLETED and awards XP to the assigned adventurer
-  action completeQuest result [1] $self;
+  // Complete button is enabled only while the quest is IN_PROGRESS
+  action ( features : instance ) completeQuest result [1] $self;
+  //Give up quest, button enabled while the quest is IN_PROGRESS
+  action ( features : instance ) giveupQuest result [1] $self;
 
   validation validateQuestValues on save { create; field RequiredLevel, XpReward, GoldReward; }
   determination setInitialStatus on modify { create; }

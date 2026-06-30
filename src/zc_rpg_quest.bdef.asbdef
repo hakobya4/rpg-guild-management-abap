@@ -15,8 +15,10 @@ define behavior for ZC_RPG_QUEST alias Quest
   use action Prepare;
 
   use action completeQuest;
+  use action giveupQuest;
   side effects
   {
     action completeQuest affects entity _Adventurer;
+    action giveupQuest affects entity _Adventurer;
   }
 }

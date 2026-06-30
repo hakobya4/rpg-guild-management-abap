@@ -9,7 +9,7 @@ ENDCLASS.
 CLASS lsc_zi_rpg_adventurer IMPLEMENTATION.
   " When an adventurer is deleted, return all their inventory items to the marketplace and all the quest items in progress to quests
   METHOD save_modified.
-    LOOP AT delete-Adventurer INTO DATA(deleted_adv).
+    LOOP AT delete-adventurer INTO DATA(deleted_adv).
 
       " Items the deleted adventurer was holding
       SELECT item_id, amount
@@ -107,7 +107,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
 
     MODIFY ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer
-        UPDATE FIELDS ( AdventurerLevel AdventurerXp AdventurerGold )
+        UPDATE FIELDS ( AdventurerLevel AdventurerXp AdventurerGold AdventurerClass )
         WITH updates
       REPORTED DATA(rep)
       FAILED   DATA(fail).
@@ -220,11 +220,11 @@ CLASS lhc_Adventurer IMPLEMENTATION.
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
 
       READ TABLE adventurers ASSIGNING FIELD-SYMBOL(<adv>)
-        WITH KEY %tky = <key>-%tky.
+        WITH TABLE KEY id COMPONENTS %tky = <key>-%tky.
       CHECK sy-subrc = 0.
 
       " Adventurer must be activated/ created before taking quests .
-      SELECT SINGLE @abap_true
+      SELECT SINGLE @abap_true " checks whether the where statement is true without fetching the table.
         FROM zrpg_adventurer
         WHERE adventurer_id = @<adv>-AdventurerId
         INTO @DATA(lv_persisted).
@@ -300,7 +300,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
 
       READ TABLE adventurers ASSIGNING FIELD-SYMBOL(<adv>)
-        WITH KEY %tky = <key>-%tky.
+        WITH TABLE KEY id COMPONENTS %tky = <key>-%tky.
       CHECK sy-subrc = 0.
 
       "Adventurer must exist
@@ -463,7 +463,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
 
       READ TABLE adventurers ASSIGNING FIELD-SYMBOL(<adv>)
-        WITH KEY %tky = <key>-%tky.
+        WITH TABLE KEY id COMPONENTS %tky = <key>-%tky.
       CHECK sy-subrc = 0.
 
       " Must be saved before joining
@@ -558,7 +558,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
 
       READ TABLE adventurers ASSIGNING FIELD-SYMBOL(<adv>)
-          WITH KEY %tky = <key>-%tky.
+          WITH TABLE KEY id COMPONENTS %tky = <key>-%tky.
       CHECK sy-subrc = 0.
 
       "Adventurer must exist
