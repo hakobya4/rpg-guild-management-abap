@@ -195,13 +195,17 @@ CLASS lhc_Quest IMPLEMENTATION.
     DATA quest_updates TYPE TABLE FOR UPDATE zi_rpg_quest\\Quest.
 
     LOOP AT quests ASSIGNING FIELD-SYMBOL(<quest>).
-
-      "update adventurer values
-
-      SELECT SINGLE adventurer_id, adventurer_gold, adventurer_xp, adventurer_level
-        FROM zrpg_adventurer
-        WHERE adventurer_id = @<quest>-AdventurerId
-        INTO @DATA(lv_adv_stats).
+      IF <quest>-Status <> c_status_in_progress.
+        APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
+        APPEND VALUE #(
+          %tky                  = <quest>-%tky
+          %action-completeQuest = if_abap_behv=>mk-on
+          %msg                  = new_message_with_text(
+                                    severity = if_abap_behv_message=>severity-error
+                                    text     = 'Only an in-progress quest can be completed.' )
+        ) TO reported-Quest.
+        CONTINUE.
+      ENDIF.
 
       "  An adventurer must be assigned
       IF <quest>-AdventurerId IS INITIAL.
@@ -216,36 +220,53 @@ CLASS lhc_Quest IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
+      "update adventurer values
+
+      SELECT SINGLE adventurer_id, adventurer_gold, adventurer_xp, adventurer_level
+        FROM zrpg_adventurer
+        WHERE adventurer_id = @<quest>-AdventurerId
+        INTO @DATA(lv_adv_stats).
+
+      IF sy-subrc <> 0.
+        APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
+        APPEND VALUE #(
+          %tky                  = <quest>-%tky
+          %action-completeQuest = if_abap_behv=>mk-on
+          %msg                  = new_message_with_text(
+                                    severity = if_abap_behv_message=>severity-error
+                                    text     = 'Assigned adventurer no longer exists.' )
+        ) TO reported-Quest.
+        CONTINUE.
+      ENDIF.
 
       "  Mark quest as completed
       APPEND VALUE #(
         %tky   = <quest>-%tky
         Status = c_status_completed
       ) TO quest_updates.
-      IF sy-subrc = 0.
-        DATA(total_xp)      = lv_adv_stats-adventurer_xp + <quest>-XpReward.
-        DATA(levels_gained) = total_xp DIV c_xp_per_level.
-        DATA(new_level)     = lv_adv_stats-adventurer_level + levels_gained.
-        DATA(new_xp)        = total_xp MOD c_xp_per_level.
-        DATA(new_gold)      = lv_adv_stats-adventurer_gold + <quest>-GoldReward.
 
-        MODIFY ENTITIES OF zi_rpg_adventurer
-          ENTITY Adventurer
-          UPDATE FIELDS ( AdventurerGold AdventurerXP AdventurerLevel  )
-            WITH VALUE #( ( AdventurerId   = <quest>-AdventurerId
-                       AdventurerGold = new_gold
-                       AdventurerXp = new_xp
-                       AdventurerLevel = new_level  ) )
-          REPORTED DATA(rep_adv)
-          FAILED   DATA(fail_adv).
+      DATA(total_xp)      = lv_adv_stats-adventurer_xp + <quest>-XpReward.
+      DATA(levels_gained) = total_xp DIV c_xp_per_level.
+      DATA(new_level)     = lv_adv_stats-adventurer_level + levels_gained.
+      DATA(new_xp)        = total_xp MOD c_xp_per_level.
+      DATA(new_gold)      = lv_adv_stats-adventurer_gold + <quest>-GoldReward.
 
-        APPEND VALUE #(
-        %tky = <quest>-%tky
-        %msg = new_message_with_text(
-                 severity = if_abap_behv_message=>severity-success
-                 text     = |Quest '{ <quest>-QuestName }' completed!| )
-         ) TO reported-Quest.
-      ENDIF.
+      MODIFY ENTITIES OF zi_rpg_adventurer
+        ENTITY Adventurer
+        UPDATE FIELDS ( AdventurerGold AdventurerXP AdventurerLevel  )
+          WITH VALUE #( ( AdventurerId   = <quest>-AdventurerId
+                     AdventurerGold = new_gold
+                     AdventurerXp = new_xp
+                     AdventurerLevel = new_level  ) )
+        REPORTED DATA(rep_adv)
+        FAILED   DATA(fail_adv).
+
+      APPEND VALUE #(
+      %tky = <quest>-%tky
+      %msg = new_message_with_text(
+               severity = if_abap_behv_message=>severity-success
+               text     = |Quest '{ <quest>-QuestName }' completed!| )
+       ) TO reported-Quest.
     ENDLOOP.
 
     " Apply quest status updates
@@ -294,7 +315,7 @@ CLASS lhc_Quest IMPLEMENTATION.
           %msg                   = new_message_with_text(
                                      severity = if_abap_behv_message=>severity-error
                                      text     = 'Please provide a name for this quest.' )
-          %element-RequiredLevel = if_abap_behv=>mk-on
+          %element-QuestName = if_abap_behv=>mk-on
         ) TO reported-Quest.
       ENDIF.
       IF <quest>-RequiredLevel < 1.
@@ -371,6 +392,18 @@ CLASS lhc_Quest IMPLEMENTATION.
 
 
     LOOP AT quests ASSIGNING FIELD-SYMBOL(<quest>).
+      IF <quest>-Status <> c_status_in_progress.
+        APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
+        APPEND VALUE #(
+          %tky                = <quest>-%tky
+          %action-giveupQuest = if_abap_behv=>mk-on
+          %msg                = new_message_with_text(
+                                  severity = if_abap_behv_message=>severity-error
+                                  text     = 'Only an in-progress quest can be given up.' )
+        ) TO reported-Quest.
+        CONTINUE.
+      ENDIF.
+
       APPEND VALUE #(
           %tky   = <quest>-%tky
           Status = c_status_open
