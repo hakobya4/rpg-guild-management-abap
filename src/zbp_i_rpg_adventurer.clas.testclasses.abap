@@ -40,8 +40,11 @@ CLASS ltc_adventurer IMPLEMENTATION.
   METHOD class_setup.
     sql_environment = cl_osql_test_environment=>create(
       i_dependency_list = VALUE #(
-        ( 'ZRPG_ADVENTURER' ) ( 'ZRPG_DADVENTURER' ) ( 'ZRPG_GUILD' ) ( 'ZRPG_INVENTORY' )
-        ( 'ZRPG_MARKETPLACE' ) ( 'ZRPG_QUEST' ) ) ).
+               ( 'ZRPG_ADVENTURER' ) ( 'ZRPG_DADVENTURER' )
+               ( 'ZRPG_GUILD' ) ( 'ZRPG_GUILD_D' )
+               ( 'ZRPG_INVENTORY' )
+               ( 'ZRPG_MARKETPLACE' ) ( 'ZRPG_MARKET_D' )
+               ( 'ZRPG_QUEST' ) ( 'ZRPG_QUEST_D' ) ) ).
   ENDMETHOD.
 
   METHOD class_teardown.
@@ -173,6 +176,8 @@ CLASS ltc_adventurer IMPLEMENTATION.
           FROM VALUE #( ( AdventurerId = adventurer_id %param-GuildId = guild_id ) )
       FAILED   DATA(failed)
       REPORTED DATA(reported).
+
+    COMMIT ENTITIES.
 
     cl_abap_unit_assert=>assert_initial(
       act = failed-adventurer

@@ -32,7 +32,7 @@ CLASS ltc_marketplace IMPLEMENTATION.
 
   METHOD class_setup.
     sql_environment = cl_osql_test_environment=>create(
-      i_dependency_list = VALUE #( ( 'ZRPG_MARKETPLACE' ) ( 'ZRPG_ADVENTURER' ) ) ).
+      i_dependency_list = VALUE #( ( 'ZRPG_MARKETPLACE' ) ( 'ZRPG_MARKET_D' ) ( 'ZRPG_ADVENTURER' ) ( 'ZRPG_DADVENTURER' ) ) ).
   ENDMETHOD.
 
   METHOD class_teardown.

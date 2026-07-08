@@ -25,8 +25,11 @@ CLASS ltc_inventory IMPLEMENTATION.
     " the guild table mixes a fake table with a real one and returns no rows.
     sql_environment = cl_osql_test_environment=>create(
       i_dependency_list = VALUE #(
-        ( 'ZRPG_INVENTORY' ) ( 'ZRPG_ADVENTURER' ) ( 'ZRPG_MARKETPLACE' ) ( 'ZRPG_GUILD' ) ) ).
-  ENDMETHOD.
+        ( 'ZRPG_INVENTORY' )
+        ( 'ZRPG_ADVENTURER' ) ( 'ZRPG_DADVENTURER' )
+        ( 'ZRPG_MARKETPLACE' ) ( 'ZRPG_MARKET_D' )
+        ( 'ZRPG_GUILD' ) ( 'ZRPG_GUILD_D' ) ) ).
+    ENDMETHOD.
 
   METHOD class_teardown.
     sql_environment->destroy( ).

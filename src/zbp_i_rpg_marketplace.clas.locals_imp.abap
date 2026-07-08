@@ -90,7 +90,7 @@ CLASS lhc_Marketplace IMPLEMENTATION.
     CHECK stat_updates IS NOT INITIAL.
 
     MODIFY ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
-      ENTITY Marketplace UPDATE FIELDS ( Status ItemType ItemSubtype ) WITH stat_updates
+      ENTITY Marketplace UPDATE FIELDS ( Status ItemType ) WITH stat_updates
       REPORTED DATA(rep)
       FAILED   DATA(fail).
 

@@ -30,7 +30,7 @@ CLASS ltc_guild IMPLEMENTATION.
 
   METHOD class_setup.
     sql_environment = cl_osql_test_environment=>create(
-      i_dependency_list = VALUE #( ( 'ZRPG_GUILD' ) ( 'ZRPG_ADVENTURER' ) ) ).
+      i_dependency_list = VALUE #( ( 'ZRPG_GUILD' ) ( 'ZRPG_GUILD_D' ) ( 'ZRPG_ADVENTURER' ) ( 'ZRPG_DADVENTURER' ) ) ).
   ENDMETHOD.
 
   METHOD class_teardown.
