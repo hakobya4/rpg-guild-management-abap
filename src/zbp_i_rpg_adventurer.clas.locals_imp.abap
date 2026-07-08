@@ -452,30 +452,22 @@ CLASS lhc_Adventurer IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD joinGuild.
-    READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
-      ENTITY Adventurer
-        FIELDS ( AdventurerName GuildId )
-        WITH CORRESPONDING #( keys )
-      RESULT DATA(adventurers).
 
     DATA updates TYPE TABLE FOR UPDATE zi_rpg_adventurer\\Adventurer.
 
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
 
-      READ TABLE adventurers ASSIGNING FIELD-SYMBOL(<adv>)
-        WITH TABLE KEY id COMPONENTS %tky = <key>-%tky.
-      CHECK sy-subrc = 0.
 
       " Must be saved before joining
-      SELECT SINGLE @abap_true
+      SELECT SINGLE adventurer_name, guild_id
         FROM zrpg_adventurer
-        WHERE adventurer_id = @<adv>-AdventurerId
-        INTO @DATA(lv_persisted).
+        WHERE adventurer_id = @<key>-AdventurerId
+        INTO @DATA(adv_data).
 
-      IF <key>-%is_draft = if_abap_behv=>mk-on OR lv_persisted <> abap_true.
-        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+      IF <key>-%is_draft = if_abap_behv=>mk-on OR sy-subrc <> 0.
+        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
-          %tky              = <adv>-%tky
+          %tky              = <key>-%tky
           %action-joinGuild = if_abap_behv=>mk-on
           %msg              = new_message_with_text(
                                 severity = if_abap_behv_message=>severity-error
@@ -493,9 +485,9 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         INTO @DATA(guild_data).
 
       IF sy-subrc <> 0.
-        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
-          %tky              = <adv>-%tky
+          %tky              = <key>-%tky
           %action-joinGuild = if_abap_behv=>mk-on
           %msg              = new_message_with_text(
                                 severity = if_abap_behv_message=>severity-error
@@ -505,25 +497,25 @@ CLASS lhc_Adventurer IMPLEMENTATION.
       ENDIF.
 
       " Already a member?
-      IF <adv>-GuildId = lv_guild_id.
-        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+      IF adv_data-guild_id = lv_guild_id.
+        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
-          %tky              = <adv>-%tky
+          %tky              = <key>-%tky
           %action-joinGuild = if_abap_behv=>mk-on
           %msg              = new_message_with_text(
                                 severity = if_abap_behv_message=>severity-error
-                                text     = |{ <adv>-AdventurerName } is already a member of { guild_data-guild_name }.| )
+                                text     = |{ adv_data-adventurer_name } is already a member of { guild_data-guild_name }.| )
         ) TO reported-Adventurer.
         CONTINUE.
       ENDIF.
 
       " Join
-      APPEND VALUE #( %tky = <adv>-%tky  GuildId = lv_guild_id ) TO updates.
+      APPEND VALUE #( %tky = <key>-%tky  GuildId = lv_guild_id ) TO updates.
       APPEND VALUE #(
-        %tky = <adv>-%tky
+        %tky = <key>-%tky
         %msg = new_message_with_text(
                  severity = if_abap_behv_message=>severity-success
-                 text     = |{ <adv>-AdventurerName } has joined { guild_data-guild_name }!| )
+                 text     = |{ adv_data-adventurer_name } has joined { guild_data-guild_name }!| )
       ) TO reported-Adventurer.
 
     ENDLOOP.
@@ -547,31 +539,22 @@ CLASS lhc_Adventurer IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD quitGuild.
-    READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
-       ENTITY Adventurer
-         FIELDS ( AdventurerName GuildId )
-         WITH CORRESPONDING #( keys )
-       RESULT DATA(adventurers)
-       FAILED DATA(failed_read).
+
     DATA updates TYPE TABLE FOR UPDATE zi_rpg_adventurer\\Adventurer.
 
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
 
-      READ TABLE adventurers ASSIGNING FIELD-SYMBOL(<adv>)
-          WITH TABLE KEY id COMPONENTS %tky = <key>-%tky.
-      CHECK sy-subrc = 0.
-
       "Adventurer must exist
-      SELECT SINGLE @abap_true
+      SELECT SINGLE guild_id
         FROM zrpg_adventurer
-        WHERE adventurer_id = @<adv>-AdventurerId
-        INTO @DATA(lv_persisted).
+        WHERE adventurer_id = @<key>-AdventurerId
+        INTO @DATA(lv_guild_id).
 
 
-      IF <key>-%is_draft = if_abap_behv=>mk-on OR lv_persisted <> abap_true.
-        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+      IF <key>-%is_draft = if_abap_behv=>mk-on OR sy-subrc <> 0.
+        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
-          %tky                 = <adv>-%tky
+          %tky                 = <key>-%tky
           %action-quitGuild  = if_abap_behv=>mk-on
           %msg                 = new_message_with_text(
                                    severity = if_abap_behv_message=>severity-error
@@ -579,10 +562,10 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         ) TO reported-Adventurer.
         CONTINUE.
       ENDIF.
-      IF <adv>-GuildId = VALUE sysuuid_x16( ).
-        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+      IF lv_guild_id = VALUE sysuuid_x16( ).
+        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
-          %tky                 = <adv>-%tky
+          %tky                 = <key>-%tky
           %action-quitGuild  = if_abap_behv=>mk-on
           %msg                 = new_message_with_text(
                                    severity = if_abap_behv_message=>severity-error

@@ -15,21 +15,27 @@ CLASS lhc_Inventory IMPLEMENTATION.
 
 METHOD sellItem.
 
-    " The row identifies the item + owner, so no value help is needed.
-    READ ENTITIES OF zi_rpg_inventory IN LOCAL MODE
-      ENTITY Inventory
-        FIELDS ( ItemId ItemName AdventurerId Price Amount )
-        WITH CORRESPONDING #( keys )
-      RESULT DATA(items).
 
     DATA inv_updates TYPE TABLE FOR UPDATE zi_rpg_inventory\\Inventory.
     DATA inv_deletes TYPE TABLE FOR DELETE zi_rpg_inventory\\Inventory.
 
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
+      SELECT SINGLE item_id, item_name, adventurerid, price, amount
+        FROM zrpg_inventory
+        WHERE inventory_id = @<key>-InventoryId
+        INTO @DATA(item_data).
 
-      READ TABLE items ASSIGNING FIELD-SYMBOL(<item>)
-        WITH KEY %tky = <key>-%tky.
-      CHECK sy-subrc = 0.
+      IF sy-subrc <> 0.
+        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Inventory.
+        APPEND VALUE #(
+          %tky             = <key>-%tky
+          %action-sellItem = if_abap_behv=>mk-on
+          %msg             = new_message_with_text(
+                               severity = if_abap_behv_message=>severity-error
+                               text     = 'Inventory item not found.' )
+        ) TO reported-Inventory.
+        CONTINUE.
+      ENDIF.
 
       " ── Amount to sell (default 1) ──
       DATA(lv_sell) = <key>-%param-Amount.
@@ -37,31 +43,31 @@ METHOD sellItem.
         lv_sell = 1.
       ENDIF.
 
-      IF lv_sell > <item>-Amount.
-        APPEND VALUE #( %tky = <item>-%tky ) TO failed-Inventory.
+      IF lv_sell > item_data-amount.
+        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Inventory.
         APPEND VALUE #(
-          %tky             = <item>-%tky
+          %tky             = <key>-%tky
           %action-sellItem = if_abap_behv=>mk-on
           %msg             = new_message_with_text(
                                severity = if_abap_behv_message=>severity-error
-                               text     = |You only own { <item>-Amount } of '{ <item>-ItemName }'.| )
+                               text     = |You only own { item_data-amount } of '{ item_data-item_name }'.| )
         ) TO reported-Inventory.
         CONTINUE.
       ENDIF.
 
-      DATA(lv_refund) = lv_sell * <item>-Price.
+      DATA(lv_refund) = lv_sell * item_data-price.
 
       " ── 1) Refund gold to the owning adventurer (cross-BO) ──
       SELECT SINGLE adventurer_gold
         FROM zrpg_adventurer
-        WHERE adventurer_id = @<item>-AdventurerId
+        WHERE adventurer_id = @item_data-adventurerid
         INTO @DATA(lv_gold).
 
       IF sy-subrc = 0.
         MODIFY ENTITIES OF zi_rpg_adventurer
           ENTITY Adventurer
             UPDATE FIELDS ( AdventurerGold )
-            WITH VALUE #( ( AdventurerId   = <item>-AdventurerId
+            WITH VALUE #( ( AdventurerId   = item_data-adventurerid
                             AdventurerGold = lv_gold + lv_refund ) )
           REPORTED DATA(rep_adv)
           FAILED   DATA(fail_adv).
@@ -70,24 +76,24 @@ METHOD sellItem.
       MODIFY ENTITIES OF zi_rpg_marketplace
         ENTITY Marketplace
           EXECUTE restock
-          FROM VALUE #( ( ItemId        = <item>-ItemId
+          FROM VALUE #( ( ItemId        = item_data-item_id
                           %param-Amount = lv_sell ) )
         REPORTED DATA(rep_mkt)
         FAILED   DATA(fail_mkt).
 
       " ── 3) Reduce or remove the inventory stack (own BO, local mode) ──
-      IF lv_sell = <item>-Amount.
-        APPEND VALUE #( %tky = <item>-%tky ) TO inv_deletes.
+      IF lv_sell = item_data-amount.
+        APPEND VALUE #( %tky = <key>-%tky ) TO inv_deletes.
       ELSE.
-        APPEND VALUE #( %tky    = <item>-%tky
-                        Amount  = <item>-Amount - lv_sell ) TO inv_updates.
+        APPEND VALUE #( %tky    = <key>-%tky
+                        Amount  = item_data-amount - lv_sell ) TO inv_updates.
       ENDIF.
 
       APPEND VALUE #(
-        %tky = <item>-%tky
+        %tky = <key>-%tky
         %msg = new_message_with_text(
                  severity = if_abap_behv_message=>severity-success
-                 text     = |Sold { lv_sell }x '{ <item>-ItemName }' for { lv_refund } gold.| )
+                 text     = |Sold { lv_sell }x '{ item_data-item_name }' for { lv_refund } gold.| )
       ) TO reported-Inventory.
 
     ENDLOOP.

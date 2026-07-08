@@ -34,26 +34,24 @@ CLASS lhc_Marketplace IMPLEMENTATION.
   METHOD restock.
     " Add units back to the shop and make the item available again.
     " Runs in local mode, so it may set the readonly Status field.
-    READ ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
-      ENTITY Marketplace
-        FIELDS ( AmountAvailable )
-        WITH CORRESPONDING #( keys )
-      RESULT DATA(items).
+
 
     DATA updates TYPE TABLE FOR UPDATE zi_rpg_marketplace\\Marketplace.
 
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
-      READ TABLE items ASSIGNING FIELD-SYMBOL(<item>)
-        WITH KEY %tky = <key>-%tky.
-      CHECK sy-subrc = 0.
+
+      SELECT SINGLE amount_available
+        FROM zrpg_marketplace
+        WHERE item_id = @<key>-ItemId
+        INTO @DATA(current_amount).
 
       DATA(lv_add) = <key>-%param-Amount.
       IF lv_add < 1.
         lv_add = 1.
       ENDIF.
 
-      APPEND VALUE #( %tky            = <item>-%tky
-                      AmountAvailable = <item>-AmountAvailable + lv_add
+      APPEND VALUE #( %tky            = <key>-%tky
+                      AmountAvailable = current_amount + lv_add
                       Status          = c_status_available ) TO updates.
     ENDLOOP.
 
@@ -71,18 +69,21 @@ CLASS lhc_Marketplace IMPLEMENTATION.
   METHOD setDefaultItemValues.
     READ ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
         ENTITY Marketplace
-        FIELDS ( Status ItemType ItemSubtype )
+        FIELDS ( Status ItemType )
         WITH CORRESPONDING #( keys )
         RESULT DATA(market_stat).
     DATA stat_updates TYPE TABLE FOR UPDATE zi_rpg_marketplace\\Marketplace.
 
     LOOP AT market_stat ASSIGNING FIELD-SYMBOL(<market_stat>).
       CHECK <market_stat>-Status IS INITIAL.
+      DATA(final_item_type) = COND #( WHEN <market_stat>-ItemType IS INITIAL
+                                 THEN c_default_itemtype
+                                 ELSE <market_stat>-ItemType ).
+
       APPEND VALUE #(
-       %tky = <market_stat>-%tky
-       Status = c_status_available
-       ItemType = c_default_itemtype
-       ItemSubtype = c_default_itemsubtype
+       %tky     = <market_stat>-%tky
+       Status   = c_status_available
+       ItemType = final_item_type
        ) TO stat_updates.
     ENDLOOP.
 
@@ -143,12 +144,12 @@ CLASS lhc_Marketplace IMPLEMENTATION.
        RESULT DATA(market).
 
     LOOP AT market ASSIGNING FIELD-SYMBOL(<market>).
-    DATA(lv_name) = <market>-ItemName.
-    DATA(lv_itemtype) = <market>-ItemType.
-    DATA(lv_itemsubtype) = <market>-ItemSubtype.
+      DATA(lv_name) = <market>-ItemName.
+      DATA(lv_itemtype) = <market>-ItemType.
+      DATA(lv_itemsubtype) = <market>-ItemSubtype.
 
 
-    IF lv_name IS INITIAL.
+      IF lv_name IS INITIAL.
         APPEND VALUE #( %tky = <market>-%tky ) TO failed-Marketplace.
         APPEND VALUE #(
           %tky                    = <market>-%tky
@@ -160,7 +161,7 @@ CLASS lhc_Marketplace IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-    IF lv_itemtype = ''.
+      IF lv_itemtype = ''.
         APPEND VALUE #( %tky = <market>-%tky ) TO failed-Marketplace.
         APPEND VALUE #(
           %tky                    = <market>-%tky
@@ -221,18 +222,16 @@ CLASS lhc_Marketplace IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD buyItem.
-    READ ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
-       ENTITY Marketplace
-         FIELDS ( ItemName Status AdventurerId RequiredLevel Price AmountAvailable )
-         WITH CORRESPONDING #( keys )
-       RESULT DATA(items).
 
     DATA updates TYPE TABLE FOR UPDATE zi_rpg_marketplace\\Marketplace.
 
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
 
-      READ TABLE items ASSIGNING FIELD-SYMBOL(<item>)
-        WITH KEY %tky = <key>-%tky.
+      SELECT SINGLE item_name, status, required_level, price, amount_available
+        FROM zrpg_marketplace
+        WHERE item_id = @<key>-ItemId
+        INTO @DATA(item_data).
+
       IF sy-subrc <> 0.
         APPEND VALUE #( %tky = <key>-%tky ) TO failed-Marketplace.
         APPEND VALUE #(
@@ -248,9 +247,9 @@ CLASS lhc_Marketplace IMPLEMENTATION.
       DATA(lv_adventurer_id) = <key>-%param-AdventurerId.
 
       IF lv_adventurer_id IS INITIAL.
-        APPEND VALUE #( %tky = <item>-%tky ) TO failed-Marketplace.
+        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Marketplace.
         APPEND VALUE #(
-          %tky                = <item>-%tky
+          %tky                = <key>-%tky
           %action-buyItem = if_abap_behv=>mk-on
           %msg                = new_message_with_text(
                                   severity = if_abap_behv_message=>severity-error
@@ -266,9 +265,9 @@ CLASS lhc_Marketplace IMPLEMENTATION.
         INTO @DATA(adventurer_data).
 
       IF sy-subrc <> 0.
-        APPEND VALUE #( %tky = <item>-%tky ) TO failed-Marketplace.
+        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Marketplace.
         APPEND VALUE #(
-          %tky                = <item>-%tky
+          %tky                = <key>-%tky
           %action-buyItem = if_abap_behv=>mk-on
           %msg                = new_message_with_text(
                                   severity = if_abap_behv_message=>severity-error
@@ -278,30 +277,28 @@ CLASS lhc_Marketplace IMPLEMENTATION.
       ENDIF.
 
       "  Item must be Available
-      IF <item>-Status <> c_status_available.
-        APPEND VALUE #( %tky = <item>-%tky ) TO failed-Marketplace.
+      IF item_data-status <> c_status_available.
+        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Marketplace.
         APPEND VALUE #(
-          %tky                = <item>-%tky
+          %tky                = <key>-%tky
           %action-buyItem = if_abap_behv=>mk-on
           %msg                = new_message_with_text(
                                   severity = if_abap_behv_message=>severity-error
-                                  text     = |Item '{ <item>-ItemName }' is not available|
-                                          && | (status: { <item>-Status }).| )
+                                  text     = |Item '{ item_data-item_name }' is not available(status: { item_data-status }).| )
         ) TO reported-Marketplace.
         CONTINUE.
       ENDIF.
 
 
       "  Level requirement check
-      IF adventurer_data-adventurer_level < <item>-RequiredLevel.
-        APPEND VALUE #( %tky = <item>-%tky ) TO failed-Marketplace.
+      IF adventurer_data-adventurer_level < item_data-required_level.
+        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Marketplace.
         APPEND VALUE #(
-          %tky                = <item>-%tky
+          %tky                = <key>-%tky
           %action-buyItem = if_abap_behv=>mk-on
           %msg                = new_message_with_text(
                                   severity = if_abap_behv_message=>severity-error
-                                  text     = |You must be level { <item>-RequiredLevel }|
-                                          && | to buy '{ <item>-ItemName }'.| )
+                                  text     = |You must be level { item_data-required_level }| )
         ) TO reported-Marketplace.
         CONTINUE.
       ENDIF.
@@ -312,44 +309,36 @@ CLASS lhc_Marketplace IMPLEMENTATION.
       ENDIF.
 
       "  Not enough stock for the requested quantity
-      IF lv_amount > <item>-AmountAvailable.
-        APPEND VALUE #( %tky = <item>-%tky ) TO failed-Marketplace.
+      IF lv_amount > item_data-amount_available.
+        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Marketplace.
         APPEND VALUE #(
-          %tky            = <item>-%tky
+          %tky            = <key>-%tky
           %action-buyItem = if_abap_behv=>mk-on
           %msg            = new_message_with_text(
                               severity = if_abap_behv_message=>severity-error
-                              text     = |Only { <item>-AmountAvailable } of|
-                                      && | '{ <item>-ItemName }' in stock|
-                                      && | (requested { lv_amount }).| )
+                              text     = |Only { item_data-amount_available } is available.| )
         ) TO reported-Marketplace.
         CONTINUE.
       ENDIF.
 
       "  Reduce stock by the bought quantity and assign the item to the buyer
-      DATA(new_amount) = <item>-AmountAvailable - lv_amount.
+      DATA(new_amount) = item_data-amount_available - lv_amount.
 
-      MODIFY ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
-        ENTITY Marketplace
-          UPDATE FIELDS ( AmountAvailable )
-          WITH VALUE #( ( %tky            = <item>-%tky
-                          AmountAvailable = new_amount
-               ) )
-        REPORTED DATA(rep_item)
-        FAILED   DATA(fail_item).
+      DATA(new_status) = COND #( WHEN new_amount = 0 THEN c_status_sold ELSE c_status_available ).
+
 
       "  When the last unit is bought, mark the listing SOLD OUT
-      IF new_amount = 0.
-        APPEND VALUE #(
-          %tky         = <item>-%tky
-          Status       = c_status_sold
-        ) TO updates.
-      ENDIF.
       APPEND VALUE #(
-      %tky = <item>-%tky
+         %tky            = <key>-%tky
+         AmountAvailable = new_amount
+         Status          = new_status
+       ) TO updates.
+
+      APPEND VALUE #(
+      %tky = <key>-%tky
         %msg = new_message_with_text(
                  severity = if_abap_behv_message=>severity-success
-                 text     = |{ lv_amount }x '{ <item>-ItemName }' successfully bought.| )
+                 text     = |{ lv_amount }x '{ item_data-item_name }' successfully bought.| )
       ) TO reported-Marketplace.
     ENDLOOP.
 
@@ -357,7 +346,7 @@ CLASS lhc_Marketplace IMPLEMENTATION.
     IF updates IS NOT INITIAL.
       MODIFY ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
         ENTITY Marketplace
-          UPDATE FIELDS ( Status )
+          UPDATE FIELDS ( AmountAvailable Status )
           WITH updates
         REPORTED DATA(reported_update)
         FAILED   DATA(failed_update).
