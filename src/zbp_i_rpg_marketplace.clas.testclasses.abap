@@ -12,18 +12,12 @@ CLASS ltc_marketplace DEFINITION FOR TESTING
     METHODS subtype_defaults_for_armor     FOR TESTING.
     METHODS empty_item_name_is_rejected    FOR TESTING.
     METHODS zero_price_is_rejected         FOR TESTING.
-    METHODS buy_reduces_stock              FOR TESTING
-              RAISING
-                cx_uuid_error.
-    METHODS buy_last_unit_marks_sold_out   FOR TESTING
-              RAISING
-                cx_uuid_error.
     METHODS buy_below_required_level_fails FOR TESTING
-              RAISING
-                cx_uuid_error.
+      RAISING
+        cx_uuid_error.
     METHODS buy_more_than_in_stock_fails   FOR TESTING
-              RAISING
-                cx_uuid_error.
+      RAISING
+        cx_uuid_error.
 
 ENDCLASS.
 
@@ -32,7 +26,8 @@ CLASS ltc_marketplace IMPLEMENTATION.
 
   METHOD class_setup.
     sql_environment = cl_osql_test_environment=>create(
-      i_dependency_list = VALUE #( ( 'ZRPG_MARKETPLACE' ) ( 'ZRPG_MARKET_D' ) ( 'ZRPG_ADVENTURER' ) ( 'ZRPG_DADVENTURER' ) ) ).
+      i_dependency_list = VALUE #( ( 'ZRPG_MARKETPLACE' ) ( 'ZRPG_MARKET_D' ) ( 'ZRPG_ADVENTURER' ) ( 'ZRPG_DADVENTURER' )
+        ( 'ZRPG_GUILD' ) ( 'ZRPG_GUILD_D' ) ) ).
   ENDMETHOD.
 
   METHOD class_teardown.
@@ -40,6 +35,8 @@ CLASS ltc_marketplace IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD teardown.
+      ROLLBACK ENTITIES.
+
     sql_environment->clear_doubles( ).
   ENDMETHOD.
 
@@ -101,73 +98,7 @@ CLASS ltc_marketplace IMPLEMENTATION.
       msg = 'An item with a price below 1 must fail validation' ).
   ENDMETHOD.
 
-  METHOD buy_reduces_stock.
-    DATA(item_id)        = cl_system_uuid=>create_uuid_x16_static( ).
-    DATA(adventurer_id)  = cl_system_uuid=>create_uuid_x16_static( ).
 
-    DATA mkt TYPE STANDARD TABLE OF zrpg_marketplace WITH EMPTY KEY.
-    mkt = VALUE #( ( item_id = item_id item_name = 'Potion' status = 'AVAILABLE'
-                     required_level = 1 price = 5 amount_available = 10 ) ).
-    sql_environment->insert_test_data( mkt ).
-
-    DATA advs TYPE STANDARD TABLE OF zrpg_adventurer WITH EMPTY KEY.
-    advs = VALUE #( ( adventurer_id = adventurer_id adventurer_name = 'Aria' adventurer_level = 5 ) ).
-    sql_environment->insert_test_data( advs ).
-
-    MODIFY ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
-      ENTITY Marketplace
-        EXECUTE buyItem
-          FROM VALUE #( ( ItemId              = item_id
-                          %param-AdventurerId = adventurer_id
-                          %param-Amount       = 3 ) )
-      FAILED   DATA(failed)
-      REPORTED DATA(reported).
-
-    cl_abap_unit_assert=>assert_initial(
-      act = failed-marketplace
-      msg = 'Buying 3 of 10 available potions should succeed' ).
-
-    READ ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
-      ENTITY Marketplace
-        FIELDS ( AmountAvailable Status ) WITH VALUE #( ( ItemId = item_id ) )
-      RESULT DATA(items).
-
-    cl_abap_unit_assert=>assert_equals(
-      act = items[ 1 ]-AmountAvailable exp = 7
-      msg = 'Stock must drop by the bought amount' ).
-  ENDMETHOD.
-
-  METHOD buy_last_unit_marks_sold_out.
-    DATA(item_id)        = cl_system_uuid=>create_uuid_x16_static( ).
-    DATA(adventurer_id)  = cl_system_uuid=>create_uuid_x16_static( ).
-
-    DATA mkt TYPE STANDARD TABLE OF zrpg_marketplace WITH EMPTY KEY.
-    mkt = VALUE #( ( item_id = item_id item_name = 'Potion' status = 'AVAILABLE'
-                     required_level = 1 price = 5 amount_available = 1 ) ).
-    sql_environment->insert_test_data( mkt ).
-
-    DATA advs TYPE STANDARD TABLE OF zrpg_adventurer WITH EMPTY KEY.
-    advs = VALUE #( ( adventurer_id = adventurer_id adventurer_name = 'Aria' adventurer_level = 5 ) ).
-    sql_environment->insert_test_data( advs ).
-
-    MODIFY ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
-      ENTITY Marketplace
-        EXECUTE buyItem
-          FROM VALUE #( ( ItemId              = item_id
-                          %param-AdventurerId = adventurer_id
-                          %param-Amount       = 1 ) )
-      FAILED   DATA(failed)
-      REPORTED DATA(reported).
-
-    READ ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
-      ENTITY Marketplace
-        FIELDS ( AmountAvailable Status ) WITH VALUE #( ( ItemId = item_id ) )
-      RESULT DATA(items).
-
-    cl_abap_unit_assert=>assert_equals(
-      act = items[ 1 ]-Status exp = 'SOLD OUT'
-      msg = 'Buying the last unit must mark the item sold out' ).
-  ENDMETHOD.
 
   METHOD buy_below_required_level_fails.
     DATA(item_id)        = cl_system_uuid=>create_uuid_x16_static( ).

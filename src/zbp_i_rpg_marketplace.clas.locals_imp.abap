@@ -355,6 +355,15 @@ CLASS lhc_Marketplace IMPLEMENTATION.
         BASE ( reported-Marketplace ) reported_update-Marketplace ).
       failed-Marketplace   = CORRESPONDING #(
         BASE ( failed-Marketplace ) failed_update-Marketplace ).
+
+           IF failed_update-Marketplace IS NOT INITIAL.
+        APPEND VALUE #(
+          %tky = failed_update-Marketplace[ 1 ]-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-error
+                   text     = |DEBUG nested update fail-cause: { failed_update-Marketplace[ 1 ]-%fail-cause }| )
+        ) TO reported-Marketplace.
+      ENDIF.
     ENDIF.
 
     READ ENTITIES OF zi_rpg_marketplace IN LOCAL MODE

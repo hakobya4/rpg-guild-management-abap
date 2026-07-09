@@ -453,11 +453,6 @@ CLASS lhc_Adventurer IMPLEMENTATION.
 
   METHOD joinGuild.
 
-    READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
-          ENTITY Adventurer
-        FIELDS ( AdventurerName )
-            WITH CORRESPONDING #( keys )
-      RESULT DATA(adventurers_primed).
 
     DATA updates TYPE TABLE FOR UPDATE zi_rpg_adventurer\\Adventurer.
 
@@ -535,6 +530,14 @@ text     = |{ adv_data-adventurer_name } is already a member of { guild_data-gui
       failed-Adventurer   = CORRESPONDING #( BASE ( failed-Adventurer ) fail-Adventurer ).
     ENDIF.
 
+     IF fail-Adventurer IS NOT INITIAL.
+        APPEND VALUE #(
+          %tky = fail-Adventurer[ 1 ]-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-error
+                   text     = |DEBUG nested update fail-cause: { fail-Adventurer[ 1 ]-%fail-cause }| )
+        ) TO reported-Adventurer.
+      ENDIF.
 
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer ALL FIELDS WITH CORRESPONDING #( keys )
@@ -550,6 +553,7 @@ text     = |{ adv_data-adventurer_name } is already a member of { guild_data-gui
         FIELDS ( GuildId )
         WITH CORRESPONDING #( keys )
       RESULT DATA(adventurers).
+
     DATA updates TYPE TABLE FOR UPDATE zi_rpg_adventurer\\Adventurer.
 
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).

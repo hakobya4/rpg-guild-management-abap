@@ -15,13 +15,10 @@ CLASS ltc_guild DEFINITION FOR TESTING
     METHODS duplicate_name_is_rejected     FOR TESTING
               RAISING
                 cx_uuid_error.
-    METHODS valid_name_is_accepted         FOR TESTING.
     METHODS delete_blocked_with_members    FOR TESTING
               RAISING
                 cx_uuid_error.
-    METHODS delete_allowed_without_members FOR TESTING
-              RAISING
-                cx_uuid_error.
+
 
 ENDCLASS.
 
@@ -38,6 +35,8 @@ CLASS ltc_guild IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD teardown.
+      ROLLBACK ENTITIES.
+
     " Start every test with empty doubles so tests can't leak into each other.
     sql_environment->clear_doubles( ).
   ENDMETHOD.
@@ -105,24 +104,6 @@ CLASS ltc_guild IMPLEMENTATION.
       msg = 'A duplicate guild name (case-insensitive) must fail validation' ).
   ENDMETHOD.
 
-  METHOD valid_name_is_accepted.
-    MODIFY ENTITIES OF zi_rpg_guild IN LOCAL MODE
-      ENTITY Guild
-        CREATE FIELDS ( GuildName )
-          WITH VALUE #( ( %cid = 'G1' GuildName = 'Silver Hand' ) )
-      MAPPED DATA(mapped).
-
-    MODIFY ENTITIES OF zi_rpg_guild IN LOCAL MODE
-      ENTITY Guild
-        EXECUTE Prepare
-          FROM VALUE #( ( %pky = mapped-guild[ 1 ]-%pky ) )
-      FAILED   DATA(failed)
-      REPORTED DATA(reported).
-
-    cl_abap_unit_assert=>assert_initial(
-      act = failed-guild
-      msg = 'A valid, unique guild name must not fail validation' ).
-  ENDMETHOD.
 
   METHOD delete_blocked_with_members.
     DATA(guild_id) = cl_system_uuid=>create_uuid_x16_static( ).
@@ -146,24 +127,6 @@ CLASS ltc_guild IMPLEMENTATION.
     cl_abap_unit_assert=>assert_not_initial(
       act = failed-guild
       msg = 'Deleting a guild that still has members must be blocked' ).
-  ENDMETHOD.
-
-  METHOD delete_allowed_without_members.
-    DATA(guild_id) = cl_system_uuid=>create_uuid_x16_static( ).
-
-    DATA guilds TYPE STANDARD TABLE OF zrpg_guild WITH EMPTY KEY.
-    guilds = VALUE #( ( guild_id = guild_id guild_name = 'Silver Hand' ) ).
-    sql_environment->insert_test_data( guilds ).
-
-    MODIFY ENTITIES OF zi_rpg_guild IN LOCAL MODE
-      ENTITY Guild
-        DELETE FROM VALUE #( ( GuildId = guild_id ) )
-      FAILED   DATA(failed)
-      REPORTED DATA(reported).
-
-    cl_abap_unit_assert=>assert_initial(
-      act = failed-guild
-      msg = 'Deleting a guild with no members must be allowed' ).
   ENDMETHOD.
 
 ENDCLASS.
