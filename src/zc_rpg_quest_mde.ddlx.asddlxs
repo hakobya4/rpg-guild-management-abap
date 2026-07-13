@@ -28,28 +28,45 @@ annotate view ZC_RPG_QUEST with
   @UI.identification: [{ position: 10 }]
   @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 10, label: 'Quest Name' }]
   QuestName;
-
-  @UI.lineItem:       [{ position: 20, label: 'Status' }]
+  
+ @Consumption.valueHelpDefinition: [{
+    entity: {
+      name:    'ZI_RPG_QUESTTYPE_VH',
+      element: 'QuestType'
+    },
+    additionalBinding: [{
+      usage:        #RESULT
+    }],
+    useForValidation: true
+  }]
+  
+  @UI.lineItem:       [{ position: 20, label: 'Quest Type' }]
   @UI.selectionField: [{ position: 20 }]
   @UI.identification: [{ position: 20 }]
-  @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 20, label: 'Status' }]
+  @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 20, label: 'Quest Type' }]
+  QuestType;
+
+  @UI.lineItem:       [{ position: 30, label: 'Status' }]
+  @UI.selectionField: [{ position: 30 }]
+  @UI.identification: [{ position: 30 }]
+  @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 30, label: 'Status' }]
   Status;
 
-  @UI.lineItem:       [{ position: 30, label: 'Required Level' }]
-  @UI.identification: [{ position: 30 }]
+  @UI.lineItem:       [{ position: 40, label: 'Required Level' }]
+  @UI.identification: [{ position: 40 }]
   @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 10, label: 'Required Level' }]
   RequiredLevel;
 
-  @UI.lineItem:       [{ position: 40, label: 'XP Reward' }]
-  @UI.identification: [{ position: 40 }]
+  @UI.lineItem:       [{ position: 50, label: 'XP Reward' }]
+  @UI.identification: [{ position: 50 }]
   @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 20, label: 'XP Reward' }]
   XpReward;
-  @UI.lineItem:       [{ position: 45, label: 'Gold Reward' }]
-  @UI.identification: [{ position: 45 }]
+  @UI.lineItem:       [{ position: 60, label: 'Gold Reward' }]
+  @UI.identification: [{ position: 60 }]
   @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 20, label: 'Gold Reward' }]
   GoldReward;
 
-  @UI.lineItem:       [{ position: 50, label: 'Description' }]
+  @UI.lineItem:       [{ position: 70, label: 'Description' }]
   @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 30, label: 'Description' }]
   Description;
 

@@ -6,6 +6,8 @@ CLASS lsc_zi_rpg_adventurer DEFINITION INHERITING FROM cl_abap_behavior_saver.
 
 ENDCLASS.
 
+
+
 CLASS lsc_zi_rpg_adventurer IMPLEMENTATION.
   " When an adventurer is deleted, return all their inventory items to the marketplace and all the quest items in progress to quests
   METHOD save_modified.
@@ -47,6 +49,8 @@ CLASS lsc_zi_rpg_adventurer IMPLEMENTATION.
     ENDLOOP.
 
   ENDMETHOD.
+
+
 
 ENDCLASS.
 

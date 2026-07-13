@@ -11,6 +11,7 @@ define root view entity ZI_RPG_QUEST
 {
   key quest_id              as QuestId,
       quest_name            as QuestName,
+      quest_type            as QuestType,
       description           as Description,
       required_level        as RequiredLevel,
       xp_reward             as XpReward,

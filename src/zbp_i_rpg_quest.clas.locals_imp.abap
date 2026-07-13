@@ -2,12 +2,16 @@
 *"* local helper classes, interface definitions and type declarations
 
 CLASS lhc_Quest DEFINITION INHERITING FROM cl_abap_behavior_handler.
+  PUBLIC SECTION.
+    CLASS-DATA go_dice_roller TYPE REF TO zif_rpg_dice_roller.
+
   PRIVATE SECTION.
 
     CONSTANTS:
       c_status_open        TYPE zrpg_quest-status VALUE 'OPEN',
       c_status_in_progress TYPE zrpg_quest-status VALUE 'IN_PROGRESS',
       c_status_completed   TYPE zrpg_quest-status VALUE 'COMPLETED',
+      c_status_failed      TYPE zrpg_quest-status VALUE 'FAILED',
       c_xp_per_level       TYPE i                 VALUE 10.
 
     METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
@@ -184,7 +188,7 @@ CLASS lhc_Quest IMPLEMENTATION.
     DATA quest_updates TYPE TABLE FOR UPDATE zi_rpg_quest\\Quest.
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
 
-      SELECT SINGLE status, adventurer_id, xp_reward, quest_name, required_level, gold_reward
+      SELECT SINGLE status, adventurer_id, xp_reward, quest_name, required_level, gold_reward, quest_type
         FROM zrpg_quest
         WHERE quest_id = @<key>-QuestId
         INTO @DATA(quest_data).
@@ -216,7 +220,7 @@ CLASS lhc_Quest IMPLEMENTATION.
 
       "update adventurer values
 
-      SELECT SINGLE adventurer_id, adventurer_gold, adventurer_xp, adventurer_level
+      SELECT SINGLE adventurer_id, adventurer_gold, adventurer_xp, adventurer_level, adventurer_class
         FROM zrpg_adventurer
         WHERE adventurer_id = @quest_data-adventurer_id
         INTO @DATA(lv_adv_stats).
@@ -233,34 +237,65 @@ CLASS lhc_Quest IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      "  Mark quest as completed
-      APPEND VALUE #(
-        %tky   = <key>-%tky
-        Status = c_status_completed
-      ) TO quest_updates.
+      DATA(lo_strategy) = zcl_rpg_quest_resolution=>create_strategy(
+                             iv_quest_type       = quest_data-quest_type
+                             iv_adventurer_class = lv_adv_stats-adventurer_class ).
 
-      DATA(total_xp)      = lv_adv_stats-adventurer_xp + quest_data-xp_reward.
-      DATA(levels_gained) = total_xp DIV c_xp_per_level.
-      DATA(new_level)     = lv_adv_stats-adventurer_level + levels_gained.
-      DATA(new_xp)        = total_xp MOD c_xp_per_level.
-      DATA(new_gold)      = lv_adv_stats-adventurer_gold + quest_data-gold_reward.
+      DATA(lv_chance) = lo_strategy->get_success_chance(
+                           iv_adventurer_level = lv_adv_stats-adventurer_level
+                           iv_required_level   = quest_data-required_level ).
 
-      MODIFY ENTITIES OF zi_rpg_adventurer
-        ENTITY Adventurer
-        UPDATE FIELDS ( AdventurerGold AdventurerXP AdventurerLevel  )
-          WITH VALUE #( ( AdventurerId   = quest_data-adventurer_id
-                     AdventurerGold = new_gold
-                     AdventurerXp = new_xp
-                     AdventurerLevel = new_level  ) )
-        REPORTED DATA(rep_adv)
-        FAILED   DATA(fail_adv).
+      IF go_dice_roller IS INITIAL.
+        go_dice_roller = NEW zcl_rpg_roll_dice( ).
+      ENDIF.
+      DATA(lv_roll) = go_dice_roller->roll_percentage( ).
 
-      APPEND VALUE #(
-      %tky = <key>-%tky
-      %msg = new_message_with_text(
-               severity = if_abap_behv_message=>severity-success
-               text     = |Quest '{ quest_data-quest_name }' completed!| )
-       ) TO reported-Quest.
+      IF lv_roll <= lv_chance.
+        "  Success: mark quest completed and pay out rewards
+        APPEND VALUE #(
+          %tky   = <key>-%tky
+          Status = c_status_completed
+        ) TO quest_updates.
+
+        DATA(total_xp)      = lv_adv_stats-adventurer_xp + quest_data-xp_reward.
+        DATA(levels_gained) = total_xp DIV c_xp_per_level.
+        DATA(new_level)     = lv_adv_stats-adventurer_level + levels_gained.
+        DATA(new_xp)        = total_xp MOD c_xp_per_level.
+        DATA(new_gold)      = lv_adv_stats-adventurer_gold + quest_data-gold_reward.
+
+        MODIFY ENTITIES OF zi_rpg_adventurer
+          ENTITY Adventurer
+          UPDATE FIELDS ( AdventurerGold AdventurerXP AdventurerLevel  )
+            WITH VALUE #( ( AdventurerId   = quest_data-adventurer_id
+                       AdventurerGold = new_gold
+                       AdventurerXp = new_xp
+                       AdventurerLevel = new_level  ) )
+          REPORTED DATA(rep_adv)
+          FAILED   DATA(fail_adv).
+
+        APPEND VALUE #(
+        %tky = <key>-%tky
+        %msg = new_message_with_text(
+                 severity = if_abap_behv_message=>severity-success
+                 text     = |Quest '{ quest_data-quest_name }' completed! | &&
+                            |(rolled { lv_roll }, needed { lv_chance } or under)| )
+         ) TO reported-Quest.
+
+      ELSE.
+        "  Failure: mark quest failed, no rewards, no XP/gold change
+        APPEND VALUE #(
+          %tky   = <key>-%tky
+          Status = c_status_failed
+        ) TO quest_updates.
+
+        APPEND VALUE #(
+        %tky = <key>-%tky
+        %msg = new_message_with_text(
+                 severity = if_abap_behv_message=>severity-error
+                 text     = |Quest '{ quest_data-quest_name }' failed! | &&
+                            |(rolled { lv_roll }, needed { lv_chance } or under)| )
+         ) TO reported-Quest.
+      ENDIF.
     ENDLOOP.
 
     " Apply quest status updates
@@ -296,7 +331,7 @@ CLASS lhc_Quest IMPLEMENTATION.
 
     READ ENTITIES OF zi_rpg_quest IN LOCAL MODE
       ENTITY Quest
-        FIELDS ( RequiredLevel XpReward GoldReward QuestName )
+        FIELDS ( RequiredLevel XpReward GoldReward QuestName QuestType )
         WITH CORRESPONDING #( keys )
       RESULT DATA(quests).
 
@@ -310,6 +345,17 @@ CLASS lhc_Quest IMPLEMENTATION.
                                      severity = if_abap_behv_message=>severity-error
                                      text     = 'Please provide a name for this quest.' )
           %element-QuestName = if_abap_behv=>mk-on
+        ) TO reported-Quest.
+      ENDIF.
+
+      IF <quest>-QuestType IS INITIAL.
+        APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
+        APPEND VALUE #(
+          %tky                = <quest>-%tky
+          %msg                = new_message_with_text(
+                                   severity = if_abap_behv_message=>severity-error
+                                   text     = 'Please choose a quest type.' )
+          %element-QuestType = if_abap_behv=>mk-on
         ) TO reported-Quest.
       ENDIF.
       IF <quest>-RequiredLevel < 1.
@@ -430,5 +476,6 @@ CLASS lhc_Quest IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 
 
