@@ -28,23 +28,23 @@ annotate view ZC_RPG_QUEST with
   @UI.identification: [{ position: 10 }]
   @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 10, label: 'Quest Name' }]
   QuestName;
-  
- @Consumption.valueHelpDefinition: [{
-    entity: {
-      name:    'ZI_RPG_QUESTTYPE_VH',
-      element: 'QuestType'
-    },
-    additionalBinding: [{
-      usage:        #RESULT
-    }],
-    useForValidation: true
-  }]
+
+   @Consumption.valueHelpDefinition: [{
+      entity: {
+        name:    'ZI_RPG_QUESTTYPE_VH',
+        element: 'QuestTypeName'
+      },
+      additionalBinding: [{
+        usage:        #RESULT
+      }],
+      useForValidation: true
+    }]
   
   @UI.lineItem:       [{ position: 20, label: 'Quest Type' }]
   @UI.selectionField: [{ position: 20 }]
   @UI.identification: [{ position: 20 }]
   @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 20, label: 'Quest Type' }]
-  QuestType;
+  QuestTypeName;
 
   @UI.lineItem:       [{ position: 30, label: 'Status' }]
   @UI.selectionField: [{ position: 30 }]

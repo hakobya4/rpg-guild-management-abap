@@ -6,7 +6,7 @@ CLASS zcl_rpg_quest_resolution DEFINITION
   PUBLIC SECTION.
     "decides combat quest vs not a combat quest
     CLASS-METHODS create_strategy
-      IMPORTING iv_quest_type       TYPE zrpg_quest-quest_type
+      IMPORTING iv_quest_type       TYPE zrpg_quest-quest_type_name
                 iv_adventurer_class TYPE zrpg_adventurer-adventurer_class
       RETURNING VALUE(ro_strategy) TYPE REF TO zif_rpg_quest_resolution.
 

@@ -44,7 +44,7 @@ etag master LastChangedAt
     {
       QuestId            = quest_id;
       QuestName          = quest_name;
-      QuestType          = quest_type;
+      QuestTypeName          = quest_type_name;
       Description        = description;
       RequiredLevel      = required_level;
       XpReward           = xp_reward;

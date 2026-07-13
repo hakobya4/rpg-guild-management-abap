@@ -8,18 +8,18 @@ define view entity ZI_RPG_QUESTTYPE_VH
   as select from I_Language
 {
   @Search.defaultSearchElement: true
-  key cast( 'COMBAT'    as abap.char(20) ) as QuestType,
-      cast( 'Combat'    as abap.char(30) ) as QuestTypeName
+  key cast( 'COMBAT'    as abap.char(20) ) as QuestTypeName,
+      cast( 'Combat'    as abap.char(30) ) as QuestTypeNames
 }
 
 union select from I_Language
 {
-  key cast( 'EXPLORATION'  as abap.char(20) ) as QuestType,
-      cast( 'exploration'  as abap.char(30) ) as QuestTypeName
+  key cast( 'EXPLORATION'  as abap.char(20) ) as QuestTypeName,
+      cast( 'exploration'  as abap.char(30) ) as QuestTypeNames
 }
 
 union select from I_Language
 {
-  key cast( 'MISCELLANEOUS' as abap.char(20) ) as QuestType,
-      cast( 'Miscellaneous' as abap.char(30) ) as QuestTypeName
+  key cast( 'MISCELLANEOUS' as abap.char(20) ) as QuestTypeName,
+      cast( 'Miscellaneous' as abap.char(30) ) as QuestTypeNames
 }

@@ -8,7 +8,7 @@ define root view entity ZC_RPG_QUEST
 {
   key QuestId,
       QuestName,
-      QuestType,
+      QuestTypeName,
       Description,
       RequiredLevel,
       XpReward,

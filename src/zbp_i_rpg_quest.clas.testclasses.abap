@@ -48,6 +48,8 @@ CLASS ltc_quest IMPLEMENTATION.
       ROLLBACK ENTITIES.
 
     sql_environment->clear_doubles( ).
+    CLEAR lhc_quest=>go_dice_roller.
+
   ENDMETHOD.
 
   METHOD new_quest_starts_open.
@@ -164,7 +166,7 @@ CLASS ltc_quest IMPLEMENTATION.
     DATA(adventurer_id)  = cl_system_uuid=>create_uuid_x16_static( ).
 
     DATA quests TYPE STANDARD TABLE OF zrpg_quest WITH EMPTY KEY.
-    quests = VALUE #( ( quest_id = quest_id quest_name = 'Slay the dragon' quest_type = 'COMBAT'
+    quests = VALUE #( ( quest_id = quest_id quest_name = 'Slay the dragon' quest_type_name = 'COMBAT'
                         status = 'IN_PROGRESS' adventurer_id = adventurer_id
                         required_level = 1 xp_reward = 5 gold_reward = 20 ) ).
     sql_environment->insert_test_data( quests ).
@@ -174,8 +176,6 @@ CLASS ltc_quest IMPLEMENTATION.
                       adventurer_level = 1 adventurer_xp = 2 adventurer_gold = 10 ) ).
     sql_environment->insert_test_data( advs ).
 
-    " Chance is clamped to a 95 ceiling at best, so a roll of 100 always
-    " loses the combat check - forces the FAILED branch deterministically.
     lhc_quest=>go_dice_roller = NEW zcl_rpg_dice_roller( iv_fixed_roll = 100 ).
 
     MODIFY ENTITIES OF zi_rpg_quest IN LOCAL MODE
@@ -215,7 +215,7 @@ CLASS ltc_quest IMPLEMENTATION.
     DATA(adventurer_id)  = cl_system_uuid=>create_uuid_x16_static( ).
 
     DATA quests TYPE STANDARD TABLE OF zrpg_quest WITH EMPTY KEY.
-    quests = VALUE #( ( quest_id = quest_id quest_name = 'Deliver the letter' quest_type = 'DELIVERY'
+    quests = VALUE #( ( quest_id = quest_id quest_name = 'Deliver the letter' quest_type_name = 'DELIVERY'
                         status = 'IN_PROGRESS' adventurer_id = adventurer_id
                         required_level = 1 xp_reward = 5 gold_reward = 20 ) ).
     sql_environment->insert_test_data( quests ).

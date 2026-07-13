@@ -111,8 +111,7 @@ CLASS lhc_Quest IMPLEMENTATION.
           %action-acceptQuest = if_abap_behv=>mk-on
           %msg                = new_message_with_text(
                                   severity = if_abap_behv_message=>severity-error
-                                  text     = |Quest '{ quest_data-quest_name  }' is not open|
-                                          && | (status: { quest_data-status }).| )
+                                  text     = |Quest '{ quest_data-quest_name  }' is not open| )
         ) TO reported-Quest.
         CONTINUE.
       ENDIF.
@@ -188,7 +187,7 @@ CLASS lhc_Quest IMPLEMENTATION.
     DATA quest_updates TYPE TABLE FOR UPDATE zi_rpg_quest\\Quest.
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
 
-      SELECT SINGLE status, adventurer_id, xp_reward, quest_name, required_level, gold_reward, quest_type
+      SELECT SINGLE status, adventurer_id, xp_reward, quest_name, required_level, gold_reward, quest_type_name
         FROM zrpg_quest
         WHERE quest_id = @<key>-QuestId
         INTO @DATA(quest_data).
@@ -238,7 +237,7 @@ CLASS lhc_Quest IMPLEMENTATION.
       ENDIF.
 
       DATA(lo_strategy) = zcl_rpg_quest_resolution=>create_strategy(
-                             iv_quest_type       = quest_data-quest_type
+                             iv_quest_type       = quest_data-quest_type_name
                              iv_adventurer_class = lv_adv_stats-adventurer_class ).
 
       DATA(lv_chance) = lo_strategy->get_success_chance(
@@ -277,8 +276,7 @@ CLASS lhc_Quest IMPLEMENTATION.
         %tky = <key>-%tky
         %msg = new_message_with_text(
                  severity = if_abap_behv_message=>severity-success
-                 text     = |Quest '{ quest_data-quest_name }' completed! | &&
-                            |(rolled { lv_roll }, needed { lv_chance } or under)| )
+                 text     = |Quest '{ quest_data-quest_name }' completed! | )
          ) TO reported-Quest.
 
       ELSE.
@@ -292,8 +290,7 @@ CLASS lhc_Quest IMPLEMENTATION.
         %tky = <key>-%tky
         %msg = new_message_with_text(
                  severity = if_abap_behv_message=>severity-error
-                 text     = |Quest '{ quest_data-quest_name }' failed! | &&
-                            |(rolled { lv_roll }, needed { lv_chance } or under)| )
+                 text     = |Quest '{ quest_data-quest_name }' failed! | )
          ) TO reported-Quest.
       ENDIF.
     ENDLOOP.
@@ -331,7 +328,7 @@ CLASS lhc_Quest IMPLEMENTATION.
 
     READ ENTITIES OF zi_rpg_quest IN LOCAL MODE
       ENTITY Quest
-        FIELDS ( RequiredLevel XpReward GoldReward QuestName QuestType )
+        FIELDS ( RequiredLevel XpReward GoldReward QuestName QuestTypeName )
         WITH CORRESPONDING #( keys )
       RESULT DATA(quests).
 
@@ -348,14 +345,14 @@ CLASS lhc_Quest IMPLEMENTATION.
         ) TO reported-Quest.
       ENDIF.
 
-      IF <quest>-QuestType IS INITIAL.
+      IF <quest>-QuestTypeName IS INITIAL.
         APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
         APPEND VALUE #(
           %tky                = <quest>-%tky
           %msg                = new_message_with_text(
                                    severity = if_abap_behv_message=>severity-error
                                    text     = 'Please choose a quest type.' )
-          %element-QuestType = if_abap_behv=>mk-on
+          %element-QuestTypeName = if_abap_behv=>mk-on
         ) TO reported-Quest.
       ENDIF.
       IF <quest>-RequiredLevel < 1.
@@ -476,6 +473,7 @@ CLASS lhc_Quest IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
+
 
 
 
