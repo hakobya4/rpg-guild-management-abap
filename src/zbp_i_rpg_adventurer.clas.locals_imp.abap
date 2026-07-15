@@ -78,6 +78,8 @@ CLASS lhc_Adventurer DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR ACTION Adventurer~joinGuild RESULT result.
     METHODS quitGuild FOR MODIFY
       IMPORTING keys FOR ACTION Adventurer~quitGuild RESULT result.
+    METHODS rollStats FOR MODIFY
+      IMPORTING keys FOR ACTION Adventurer~rollStats RESULT result.
 
 ENDCLASS.
 
@@ -127,7 +129,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
     " Read the adventurer name
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer
-        FIELDS ( AdventurerName AdventurerClass )
+        FIELDS ( AdventurerName AdventurerClass AdvStr AdvDex AdvCon AdvInt AdvWis AdvCha )
         WITH CORRESPONDING #( keys )
       RESULT DATA(adventurers).
 
@@ -206,6 +208,72 @@ CLASS lhc_Adventurer IMPLEMENTATION.
                                       severity = if_abap_behv_message=>severity-error
                                       text     = |Adventurer name "{ lv_name }" already exists.| )
           %element-AdventurerName = if_abap_behv=>mk-on
+        ) TO reported-Adventurer.
+      ENDIF.
+
+      IF <adv>-AdvStr < 1 OR <adv>-AdvStr > 20.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky            = <adv>-%tky
+          %msg            = new_message_with_text(
+                               severity = if_abap_behv_message=>severity-error
+                               text     = 'Strength must be between 1 and 20.' )
+          %element-AdvStr = if_abap_behv=>mk-on
+        ) TO reported-Adventurer.
+      ENDIF.
+
+      IF <adv>-AdvDex < 1 OR <adv>-AdvDex > 20.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky            = <adv>-%tky
+          %msg            = new_message_with_text(
+                               severity = if_abap_behv_message=>severity-error
+                               text     = 'Dexterity must be between 1 and 20.' )
+          %element-AdvDex = if_abap_behv=>mk-on
+        ) TO reported-Adventurer.
+      ENDIF.
+
+      IF <adv>-AdvCon < 1 OR <adv>-AdvCon > 20.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky            = <adv>-%tky
+          %msg            = new_message_with_text(
+                               severity = if_abap_behv_message=>severity-error
+                               text     = 'Constitution must be between 1 and 20.' )
+          %element-AdvCon = if_abap_behv=>mk-on
+        ) TO reported-Adventurer.
+      ENDIF.
+
+      IF <adv>-AdvInt < 1 OR <adv>-AdvInt > 20.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky            = <adv>-%tky
+          %msg            = new_message_with_text(
+                               severity = if_abap_behv_message=>severity-error
+                               text     = 'Intelligence must be between 1 and 20.' )
+          %element-AdvInt = if_abap_behv=>mk-on
+        ) TO reported-Adventurer.
+      ENDIF.
+
+      IF <adv>-AdvWis < 1 OR <adv>-AdvWis > 20.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky            = <adv>-%tky
+          %msg            = new_message_with_text(
+                               severity = if_abap_behv_message=>severity-error
+                               text     = 'Wisdom must be between 1 and 20.' )
+          %element-AdvWis = if_abap_behv=>mk-on
+        ) TO reported-Adventurer.
+      ENDIF.
+
+      IF <adv>-AdvCha < 1 OR <adv>-AdvCha > 20.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky            = <adv>-%tky
+          %msg            = new_message_with_text(
+                               severity = if_abap_behv_message=>severity-error
+                               text     = 'Charisma must be between 1 and 20.' )
+          %element-AdvCha = if_abap_behv=>mk-on
         ) TO reported-Adventurer.
       ENDIF.
 
@@ -534,14 +602,14 @@ text     = |{ adv_data-adventurer_name } is already a member of { guild_data-gui
       failed-Adventurer   = CORRESPONDING #( BASE ( failed-Adventurer ) fail-Adventurer ).
     ENDIF.
 
-     IF fail-Adventurer IS NOT INITIAL.
-        APPEND VALUE #(
-          %tky = fail-Adventurer[ 1 ]-%tky
-          %msg = new_message_with_text(
-                   severity = if_abap_behv_message=>severity-error
-                   text     = |DEBUG nested update fail-cause: { fail-Adventurer[ 1 ]-%fail-cause }| )
-        ) TO reported-Adventurer.
-      ENDIF.
+    IF fail-Adventurer IS NOT INITIAL.
+      APPEND VALUE #(
+        %tky = fail-Adventurer[ 1 ]-%tky
+        %msg = new_message_with_text(
+                 severity = if_abap_behv_message=>severity-error
+                 text     = |DEBUG nested update fail-cause: { fail-Adventurer[ 1 ]-%fail-cause }| )
+      ) TO reported-Adventurer.
+    ENDIF.
 
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer ALL FIELDS WITH CORRESPONDING #( keys )
@@ -610,6 +678,49 @@ text     = |{ adv_data-adventurer_name } is already a member of { guild_data-gui
     result = VALUE #( FOR adv IN result_adventurers
                       ( %tky   = adv-%tky
                         %param = CORRESPONDING #( adv ) ) ).
+  ENDMETHOD.
+
+  METHOD rollStats.
+
+
+    DATA updates TYPE TABLE FOR UPDATE zi_rpg_adventurer\\Adventurer.
+
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
+      DATA lo_roller TYPE REF TO zif_rpg_dice_roller.
+      lo_roller = NEW zcl_rpg_roll_dice( ).
+
+
+      APPEND VALUE #(
+        %tky   = <key>-%tky
+        AdvStr = lo_roller->roll_stats( )
+        AdvDex = lo_roller->roll_stats( )
+        AdvCon = lo_roller->roll_stats( )
+        AdvInt = lo_roller->roll_stats( )
+        AdvWis = lo_roller->roll_stats( )
+        AdvCha = lo_roller->roll_stats( )
+      ) TO updates.
+
+
+
+      MODIFY ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
+       ENTITY Adventurer
+         UPDATE FIELDS ( AdvStr AdvDex AdvCon AdvInt AdvWis AdvCha )
+         WITH updates
+       REPORTED DATA(rep)
+       FAILED   DATA(fail).
+
+      reported-Adventurer = CORRESPONDING #( BASE ( reported-Adventurer ) rep-Adventurer ).
+
+      READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
+        ENTITY Adventurer ALL FIELDS
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(result_adventurers).
+
+      result = VALUE #( FOR adv IN result_adventurers
+                        ( %tky   = adv-%tky
+                          %param = CORRESPONDING #( adv ) ) ).
+
+    ENDLOOP.
   ENDMETHOD.
 
 ENDCLASS.

@@ -14,6 +14,8 @@ define root view entity ZI_RPG_QUEST
       quest_type_name       as QuestTypeName,
       description           as Description,
       required_level        as RequiredLevel,
+      difficulty_class      as DifficultyClass,
+      required_stat         as RequiredStat,
       xp_reward             as XpReward,
       gold_reward           as GoldReward,
       status                as Status,

@@ -35,17 +35,26 @@ etag master LastChangedAt
   action quitGuild result [1] $self;
   // Accept an available quest — assigns it to this adventurer
   action acceptQuest parameter ZI_RPG_ACCEPT_QUEST_PARAM result [1] $self;
+  action rollStats result [1] $self;
 
   action buyItem parameter ZI_RPG_BUY_ITEM_PARAM result [1] $self;
   //  " Sets Level=1, XP=0 on every new adventurer
   determination initAdventurer on modify { create; }
 
-  validation validateAdventurerInfo on save {create; field AdventurerName; field AdventurerClass;}
+ validation validateAdventurerInfo on save { create; field AdventurerName, AdventurerClass,
+      AdvStr, AdvDex, AdvCon, AdvInt, AdvWis, AdvCha; }
+
 
 
   mapping for zrpg_adventurer
     {
       AdventurerId       = adventurer_id;
+      AdvStr             = adv_str;
+      AdvDex             = adv_dex;
+      AdvCon             = adv_con;
+      AdvInt             = adv_int;
+      AdvWis             = adv_wis;
+      AdvCha             = adv_cha;
       GuildId            = guild_id;
       AdventurerName     = adventurer_name;
       AdventurerClass    = adventurer_class;

@@ -17,6 +17,7 @@ define behavior for ZC_RPG_ADVENTURER alias Adventurer
   use action quitGuild;
   use action acceptQuest;
   use action buyItem;
+  use action rollStats;
 
   // Level and XP are managed by the application (defaults + quest rewards)
   field ( readonly ) AdventurerLevel, AdventurerXp, AdventurerGold;
@@ -28,6 +29,7 @@ define behavior for ZC_RPG_ADVENTURER alias Adventurer
     action acceptQuest affects entity _Quest, entity _AvailableQuest;
     action joinGuild affects field GuildName;
     action quitGuild affects field GuildName;
+    action rollStats affects field AdvStr, field AdvDex, field AdvCon, field AdvInt, field AdvWis, field AdvCha;
   }
 
 }

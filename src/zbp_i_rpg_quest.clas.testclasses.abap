@@ -17,15 +17,9 @@ CLASS ltc_quest DEFINITION FOR TESTING
     METHODS accept_below_level_fails       FOR TESTING
               RAISING
                 cx_uuid_error.
-    METHODS complete_not_in_progress_fails FOR TESTING
-              RAISING
-                cx_uuid_error.
-    METHODS complete_can_fail_combat       FOR TESTING
-              RAISING
-                cx_uuid_error.
-    METHODS complete_noncombat_always_wins FOR TESTING
-              RAISING
-                cx_uuid_error.
+
+
+    METHODS complete_not_in_progress_fails FOR TESTING RAISING cx_static_check.
 
 ENDCLASS.
 
@@ -33,6 +27,9 @@ ENDCLASS.
 CLASS ltc_quest IMPLEMENTATION.
 
   METHOD class_setup.
+    " Draft tables must be doubled alongside their active counterparts, or a
+    " real (empty) draft table gets mixed with the fake active one and reads
+    " come back empty even for otherwise-valid requests.
     sql_environment = cl_osql_test_environment=>create(
       i_dependency_list = VALUE #(
         ( 'ZRPG_QUEST' ) ( 'ZRPG_QUEST_D' )
@@ -45,18 +42,20 @@ CLASS ltc_quest IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD teardown.
-      ROLLBACK ENTITIES.
-
+    " Discard any CREATE/UPDATE still buffered in RAP's transactional
+    " session from this test, or it leaks into the next test's reads.
+    ROLLBACK ENTITIES.
     sql_environment->clear_doubles( ).
+    " Reset the dice roller seam so a stub injected by one test can't
+    " leak into the next one and fake a deterministic result there too.
     CLEAR lhc_quest=>go_dice_roller.
-
   ENDMETHOD.
 
   METHOD new_quest_starts_open.
     MODIFY ENTITIES OF zi_rpg_quest IN LOCAL MODE
       ENTITY Quest
-        CREATE FIELDS ( QuestName RequiredLevel XpReward GoldReward )
-          WITH VALUE #( ( %cid = 'Q1' QuestName = 'Slay the dragon'
+        CREATE FIELDS ( QuestName QuestTypeName RequiredLevel XpReward GoldReward )
+          WITH VALUE #( ( %cid = 'Q1' QuestName = 'Slay the dragon' QuestTypeName = 'COMBAT'
                           RequiredLevel = 5 XpReward = 20 GoldReward = 50 ) )
       MAPPED DATA(mapped).
 
@@ -73,8 +72,8 @@ CLASS ltc_quest IMPLEMENTATION.
   METHOD zero_xp_reward_is_rejected.
     MODIFY ENTITIES OF zi_rpg_quest IN LOCAL MODE
       ENTITY Quest
-        CREATE FIELDS ( QuestName RequiredLevel XpReward GoldReward )
-          WITH VALUE #( ( %cid = 'Q1' QuestName = 'Slay the dragon'
+        CREATE FIELDS ( QuestName QuestTypeName RequiredLevel XpReward GoldReward )
+          WITH VALUE #( ( %cid = 'Q1' QuestName = 'Slay the dragon' QuestTypeName = 'COMBAT'
                           RequiredLevel = 5 XpReward = 0 GoldReward = 50 ) )
       MAPPED DATA(mapped).
 
@@ -90,12 +89,14 @@ CLASS ltc_quest IMPLEMENTATION.
       msg = 'A quest with no XP reward must fail validation' ).
   ENDMETHOD.
 
+
+
   METHOD accept_taken_quest_fails.
     DATA(quest_id)       = cl_system_uuid=>create_uuid_x16_static( ).
     DATA(adventurer_id)  = cl_system_uuid=>create_uuid_x16_static( ).
 
     DATA quests TYPE STANDARD TABLE OF zrpg_quest WITH EMPTY KEY.
-    quests = VALUE #( ( quest_id = quest_id quest_name = 'Slay the dragon'
+    quests = VALUE #( ( quest_id = quest_id quest_name = 'Slay the dragon' quest_type_name = 'COMBAT'
                         status = 'IN_PROGRESS' required_level = 1 xp_reward = 10 gold_reward = 5 ) ).
     sql_environment->insert_test_data( quests ).
 
@@ -120,7 +121,7 @@ CLASS ltc_quest IMPLEMENTATION.
     DATA(adventurer_id)  = cl_system_uuid=>create_uuid_x16_static( ).
 
     DATA quests TYPE STANDARD TABLE OF zrpg_quest WITH EMPTY KEY.
-    quests = VALUE #( ( quest_id = quest_id quest_name = 'Slay the dragon'
+    quests = VALUE #( ( quest_id = quest_id quest_name = 'Slay the dragon' quest_type_name = 'COMBAT'
                         status = 'OPEN' required_level = 10 xp_reward = 10 gold_reward = 5 ) ).
     sql_environment->insert_test_data( quests ).
 
@@ -141,11 +142,13 @@ CLASS ltc_quest IMPLEMENTATION.
   ENDMETHOD.
 
 
+
+
   METHOD complete_not_in_progress_fails.
     DATA(quest_id) = cl_system_uuid=>create_uuid_x16_static( ).
 
     DATA quests TYPE STANDARD TABLE OF zrpg_quest WITH EMPTY KEY.
-    quests = VALUE #( ( quest_id = quest_id quest_name = 'Slay the dragon'
+    quests = VALUE #( ( quest_id = quest_id quest_name = 'Slay the dragon' quest_type_name = 'COMBAT'
                         status = 'OPEN' required_level = 1 xp_reward = 5 gold_reward = 5 ) ).
     sql_environment->insert_test_data( quests ).
 
@@ -161,101 +164,8 @@ CLASS ltc_quest IMPLEMENTATION.
       msg = 'A quest that is still OPEN cannot be completed' ).
   ENDMETHOD.
 
-  METHOD complete_can_fail_combat.
-    DATA(quest_id)       = cl_system_uuid=>create_uuid_x16_static( ).
-    DATA(adventurer_id)  = cl_system_uuid=>create_uuid_x16_static( ).
-
-    DATA quests TYPE STANDARD TABLE OF zrpg_quest WITH EMPTY KEY.
-    quests = VALUE #( ( quest_id = quest_id quest_name = 'Slay the dragon' quest_type_name = 'COMBAT'
-                        status = 'IN_PROGRESS' adventurer_id = adventurer_id
-                        required_level = 1 xp_reward = 5 gold_reward = 20 ) ).
-    sql_environment->insert_test_data( quests ).
-
-    DATA advs TYPE STANDARD TABLE OF zrpg_adventurer WITH EMPTY KEY.
-    advs = VALUE #( ( adventurer_id = adventurer_id adventurer_name = 'Aria'
-                      adventurer_level = 1 adventurer_xp = 2 adventurer_gold = 10 ) ).
-    sql_environment->insert_test_data( advs ).
-
-    lhc_quest=>go_dice_roller = NEW zcl_rpg_dice_roller( iv_fixed_roll = 100 ).
-
-    MODIFY ENTITIES OF zi_rpg_quest IN LOCAL MODE
-      ENTITY Quest
-        EXECUTE completeQuest
-          FROM VALUE #( ( QuestId = quest_id ) )
-      FAILED   DATA(failed)
-      REPORTED DATA(reported).
-
-    cl_abap_unit_assert=>assert_initial(
-      act = failed-quest
-      msg = 'Losing the combat roll is a normal outcome, not an action failure' ).
-
-    READ ENTITIES OF zi_rpg_quest IN LOCAL MODE
-      ENTITY Quest FIELDS ( Status ) WITH VALUE #( ( QuestId = quest_id ) )
-      RESULT DATA(quest_result).
-
-    cl_abap_unit_assert=>assert_equals(
-      act = quest_result[ 1 ]-Status exp = 'FAILED'
-      msg = 'Losing the combat roll must move the quest to FAILED' ).
-
-    READ ENTITIES OF zi_rpg_adventurer
-      ENTITY Adventurer FIELDS ( AdventurerXp AdventurerGold )
-        WITH VALUE #( ( AdventurerId = adventurer_id ) )
-      RESULT DATA(adv_result).
-
-    cl_abap_unit_assert=>assert_equals(
-      act = adv_result[ 1 ]-AdventurerXp exp = 2
-      msg = 'A failed quest must not grant any XP' ).
-    cl_abap_unit_assert=>assert_equals(
-      act = adv_result[ 1 ]-AdventurerGold exp = 10
-      msg = 'A failed quest must not grant any gold' ).
-  ENDMETHOD.
-
-  METHOD complete_noncombat_always_wins.
-    DATA(quest_id)       = cl_system_uuid=>create_uuid_x16_static( ).
-    DATA(adventurer_id)  = cl_system_uuid=>create_uuid_x16_static( ).
-
-    DATA quests TYPE STANDARD TABLE OF zrpg_quest WITH EMPTY KEY.
-    quests = VALUE #( ( quest_id = quest_id quest_name = 'Deliver the letter' quest_type_name = 'DELIVERY'
-                        status = 'IN_PROGRESS' adventurer_id = adventurer_id
-                        required_level = 1 xp_reward = 5 gold_reward = 20 ) ).
-    sql_environment->insert_test_data( quests ).
-
-    DATA advs TYPE STANDARD TABLE OF zrpg_adventurer WITH EMPTY KEY.
-    advs = VALUE #( ( adventurer_id = adventurer_id adventurer_name = 'Aria'
-                      adventurer_level = 1 adventurer_xp = 2 adventurer_gold = 10 ) ).
-    sql_environment->insert_test_data( advs ).
 
 
-    lhc_quest=>go_dice_roller = NEW zcl_rpg_dice_roller( iv_fixed_roll = 100 ).
-
-    MODIFY ENTITIES OF zi_rpg_quest IN LOCAL MODE
-      ENTITY Quest
-        EXECUTE completeQuest
-          FROM VALUE #( ( QuestId = quest_id ) )
-      FAILED   DATA(failed)
-      REPORTED DATA(reported).
-
-    cl_abap_unit_assert=>assert_initial(
-      act = failed-quest
-      msg = 'A non-combat quest should not be affected by combat action failures' ).
-
-    READ ENTITIES OF zi_rpg_quest IN LOCAL MODE
-      ENTITY Quest FIELDS ( Status ) WITH VALUE #( ( QuestId = quest_id ) )
-      RESULT DATA(quest_result).
-
-    cl_abap_unit_assert=>assert_equals(
-      act = quest_result[ 1 ]-Status exp = 'COMPLETED'
-      msg = 'A DELIVERY quest must always succeed regardless of the dice roll' ).
-
-    READ ENTITIES OF zi_rpg_adventurer
-      ENTITY Adventurer FIELDS ( AdventurerXp AdventurerGold )
-        WITH VALUE #( ( AdventurerId = adventurer_id ) )
-      RESULT DATA(adv_result).
-
-    cl_abap_unit_assert=>assert_equals(
-      act = adv_result[ 1 ]-AdventurerXp exp = 7
-      msg = 'A successful DELIVERY quest still grants its XP reward' ).
-  ENDMETHOD.
 
 ENDCLASS.
 

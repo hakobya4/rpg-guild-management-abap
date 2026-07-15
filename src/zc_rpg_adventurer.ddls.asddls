@@ -7,7 +7,12 @@ define root view entity ZC_RPG_ADVENTURER
   as projection on ZI_RPG_ADVENTURER
 {
   key AdventurerId,
-
+      AdvStr,
+      AdvDex,
+      AdvCon,
+      AdvInt,
+      AdvWis,
+      AdvCha,
       @ObjectModel.text.association: '_myGuild'
       GuildId,
       GuildName,

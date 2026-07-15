@@ -187,11 +187,10 @@ CLASS lhc_Quest IMPLEMENTATION.
     DATA quest_updates TYPE TABLE FOR UPDATE zi_rpg_quest\\Quest.
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
 
-      SELECT SINGLE status, adventurer_id, xp_reward, quest_name, required_level, gold_reward, quest_type_name
+      SELECT SINGLE status, adventurer_id, xp_reward, quest_name, required_level, gold_reward, quest_type_name, difficulty_class
         FROM zrpg_quest
         WHERE quest_id = @<key>-QuestId
         INTO @DATA(quest_data).
-
       IF sy-subrc <> 0.
         APPEND VALUE #( %tky = <key>-%tky ) TO failed-Quest.
         APPEND VALUE #(
@@ -247,9 +246,9 @@ CLASS lhc_Quest IMPLEMENTATION.
       IF go_dice_roller IS INITIAL.
         go_dice_roller = NEW zcl_rpg_roll_dice( ).
       ENDIF.
-      DATA(lv_roll) = go_dice_roller->roll_percentage( ).
+      DATA(lv_roll) = go_dice_roller->roll_dtwenty( ).
 
-      IF lv_roll <= lv_chance.
+      IF lv_roll >= quest_data-difficulty_class.
         "  Success: mark quest completed and pay out rewards
         APPEND VALUE #(
           %tky   = <key>-%tky
@@ -328,7 +327,7 @@ CLASS lhc_Quest IMPLEMENTATION.
 
     READ ENTITIES OF zi_rpg_quest IN LOCAL MODE
       ENTITY Quest
-        FIELDS ( RequiredLevel XpReward GoldReward QuestName QuestTypeName )
+        FIELDS ( RequiredLevel XpReward GoldReward QuestName QuestTypeName RequiredStat DifficultyClass )
         WITH CORRESPONDING #( keys )
       RESULT DATA(quests).
 
@@ -355,6 +354,18 @@ CLASS lhc_Quest IMPLEMENTATION.
           %element-QuestTypeName = if_abap_behv=>mk-on
         ) TO reported-Quest.
       ENDIF.
+
+      IF <quest>-RequiredStat IS INITIAL.
+        APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
+        APPEND VALUE #(
+          %tky                = <quest>-%tky
+          %msg                = new_message_with_text(
+                                   severity = if_abap_behv_message=>severity-error
+                                   text     = 'Please choose a quest stat.' )
+          %element-RequiredStat = if_abap_behv=>mk-on
+        ) TO reported-Quest.
+      ENDIF.
+
       IF <quest>-RequiredLevel < 1.
         APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
         APPEND VALUE #(
@@ -363,6 +374,17 @@ CLASS lhc_Quest IMPLEMENTATION.
                                      severity = if_abap_behv_message=>severity-error
                                      text     = 'Level requirement must be at least 1.' )
           %element-RequiredLevel = if_abap_behv=>mk-on
+        ) TO reported-Quest.
+      ENDIF.
+
+      IF <quest>-DifficultyClass < 1.
+        APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
+        APPEND VALUE #(
+          %tky                   = <quest>-%tky
+          %msg                   = new_message_with_text(
+                                     severity = if_abap_behv_message=>severity-error
+                                     text     = 'Difficulty class must be at least 1.' )
+          %element-DifficultyClass = if_abap_behv=>mk-on
         ) TO reported-Quest.
       ENDIF.
 

@@ -19,6 +19,12 @@ define root view entity ZI_RPG_ADVENTURER
   association [0..*] to ZI_RPG_INVENTORY as _Inventory on $projection.AdventurerId = _Inventory.Adventurerid
   {
   key zrpg_adventurer.adventurer_id         as AdventurerId,
+      zrpg_adventurer.adv_str             as AdvStr,
+      zrpg_adventurer.adv_dex             as AdvDex,
+      zrpg_adventurer.adv_con             as AdvCon,
+      zrpg_adventurer.adv_int             as AdvInt,
+      zrpg_adventurer.adv_wis             as AdvWis,
+      zrpg_adventurer.adv_cha             as AdvCha,
       zrpg_adventurer.guild_id              as GuildId,
 
       //      " Guild name pulled directly from the joined table

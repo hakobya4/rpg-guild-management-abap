@@ -25,7 +25,7 @@ etag master LastChangedAt
   field ( readonly, numbering : managed ) QuestId;
   field ( readonly ) CreatedAt, CreatedBy, LastChangedAt,
   LastChangedBy, LocalLastChangedAt;
-  field ( mandatory ) QuestName, RequiredLevel, XpReward, GoldReward;
+  field ( mandatory ) QuestName, RequiredLevel, XpReward, GoldReward, RequiredStat, DifficultyClass;
 
   // Lifecycle fields are only changed by the actions below
   field ( readonly ) Status, AdventurerId;
@@ -44,9 +44,11 @@ etag master LastChangedAt
     {
       QuestId            = quest_id;
       QuestName          = quest_name;
-      QuestTypeName          = quest_type_name;
+      QuestTypeName      = quest_type_name;
       Description        = description;
       RequiredLevel      = required_level;
+      RequiredStat       = required_stat;
+      DifficultyClass    = difficulty_class;
       XpReward           = xp_reward;
       GoldReward         = gold_reward;
       Status             = status;

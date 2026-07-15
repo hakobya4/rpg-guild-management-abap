@@ -11,6 +11,8 @@ define root view entity ZC_RPG_QUEST
       QuestTypeName,
       Description,
       RequiredLevel,
+      DifficultyClass,
+      RequiredStat,
       XpReward,
       GoldReward,
       Status,

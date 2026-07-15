@@ -56,18 +56,40 @@ annotate view ZC_RPG_QUEST with
   @UI.identification: [{ position: 40 }]
   @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 10, label: 'Required Level' }]
   RequiredLevel;
-
-  @UI.lineItem:       [{ position: 50, label: 'XP Reward' }]
+  
+     @Consumption.valueHelpDefinition: [{
+      entity: {
+        name:    'ZI_RPG_STAT_VH',
+        element: 'QuestStat'
+      },
+      additionalBinding: [{
+        usage:        #RESULT
+      }],
+      useForValidation: true
+    }]
+  
+  @UI.lineItem:       [{ position: 50, label: 'Required Stat' }]
   @UI.identification: [{ position: 50 }]
-  @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 20, label: 'XP Reward' }]
-  XpReward;
-  @UI.lineItem:       [{ position: 60, label: 'Gold Reward' }]
+  @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 20, label: 'Required Stat' }]
+  RequiredStat;
+  
+  @UI.lineItem:       [{ position: 60, label: 'XP Reward' }]
   @UI.identification: [{ position: 60 }]
-  @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 20, label: 'Gold Reward' }]
+  @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 30, label: 'XP Reward' }]
+  XpReward;
+  
+   @UI.lineItem:       [{ position: 70, label: 'Difficulty Class' }]
+  @UI.identification: [{ position: 70 }]
+  @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 40, label: 'Difficulty Class' }]
+  DifficultyClass;
+
+  @UI.lineItem:       [{ position: 80, label: 'Gold Reward' }]
+  @UI.identification: [{ position: 80 }]
+  @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 50, label: 'Gold Reward' }]
   GoldReward;
 
-  @UI.lineItem:       [{ position: 70, label: 'Description' }]
-  @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 30, label: 'Description' }]
+  @UI.lineItem:       [{ position: 90, label: 'Description' }]
+  @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 40, label: 'Description' }]
   Description;
 
   @UI.lineItem: [{ type:       #FOR_ACTION,
