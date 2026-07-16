@@ -20,6 +20,11 @@ annotate entity ZC_RPG_MARKETPLACE with
       id: 'Requirements', purpose: #STANDARD,
       type: #FIELDGROUP_REFERENCE, label: 'Requirements',
       position: 20, targetQualifier: 'Requirements'
+    },
+    {
+      id: 'StatBonuses', purpose: #STANDARD,
+      type: #FIELDGROUP_REFERENCE, label: 'Stat Bonuses',
+      position: 30, targetQualifier: 'StatBonuses'
     }
   ]
   @UI.lineItem:       [{ position: 10, label: 'Item', importance: #HIGH }]
@@ -27,7 +32,7 @@ annotate entity ZC_RPG_MARKETPLACE with
   @UI.identification: [{ position: 10 }]
   @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 10, label: 'Item' }]
   ItemName;
-  
+
   @Consumption.valueHelpDefinition: [{
   entity: {
     name:    'ZI_ItemType_VH',
@@ -43,16 +48,16 @@ annotate entity ZC_RPG_MARKETPLACE with
   @UI.identification: [{ position: 20 }]
   @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 20, label: 'Type' }]
   ItemType;
-  
-    @Consumption.valueHelpDefinition: [{
+
+  @Consumption.valueHelpDefinition: [{
   entity: {
-    name:    'ZI_ItemSubtype_VH',
-    element: 'ItemSubtype'
+  name:    'ZI_ItemSubtype_VH',
+  element: 'ItemSubtype'
   },
-additionalBinding: [{
-    localElement: 'ItemType',
-    element:      'ItemType',
-    usage:        #FILTER
+  additionalBinding: [{
+  localElement: 'ItemType',
+  element:      'ItemType',
+  usage:        #FILTER
   }],
   useForValidation: true
   }]
@@ -61,7 +66,7 @@ additionalBinding: [{
   @UI.identification: [{ position: 30 }]
   @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 30, label: 'Subtype' }]
   ItemSubtype;
-  
+
   @UI.lineItem:       [{ position: 40, label: 'Description', importance: #LOW }]
   @UI.identification: [{ position: 40 }]
   @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 40, label: 'Description' }]
@@ -86,5 +91,23 @@ additionalBinding: [{
   @UI.identification: [{ position: 80, label: 'Item Status' }]
   @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 10, label: 'Item Status' }]
   Status;
+  @UI.identification: [{ position: 90 }]
+  @UI.fieldGroup:     [{ qualifier: 'StatBonuses', position: 10, label: 'Strength Bonus' }]
+  StrBonus;
+  @UI.identification: [{ position: 100 }]
+  @UI.fieldGroup:     [{ qualifier: 'StatBonuses', position: 20, label: 'Dexterity Bonus' }]
+  DexBonus;
+  @UI.identification: [{ position: 110 }]
+  @UI.fieldGroup:     [{ qualifier: 'StatBonuses', position: 30, label: 'Constitution Bonus' }]
+  ConBonus;
+  @UI.identification: [{ position: 120 }]
+  @UI.fieldGroup:     [{ qualifier: 'StatBonuses', position: 40, label: 'Intelligence Bonus' }]
+  IntBonus;
+  @UI.identification: [{ position: 130 }]
+  @UI.fieldGroup:     [{ qualifier: 'StatBonuses', position: 50, label: 'Wisdom Bonus' }]
+  WisBonus;
+  @UI.identification: [{ position: 140 }]
+  @UI.fieldGroup:     [{ qualifier: 'StatBonuses', position: 60, label: 'Charisma Bonus' }]
+  ChaBonus;
 
 }

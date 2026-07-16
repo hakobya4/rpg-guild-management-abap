@@ -4,7 +4,7 @@
 @Metadata.ignorePropagatedAnnotations: true
 define root view entity ZI_RPG_MARKETPLACE
   as select from zrpg_marketplace
-  association [0..*] to ZI_RPG_ADVENTURER as _Adventurer on $projection.AdventurerId = _Adventurer.AdventurerId 
+  association [0..*] to ZI_RPG_ADVENTURER as _Adventurer on $projection.AdventurerId = _Adventurer.AdventurerId
 
 {
 
@@ -15,6 +15,12 @@ define root view entity ZI_RPG_MARKETPLACE
             item_subtype          as ItemSubtype,
             description           as Description,
             required_level        as RequiredLevel,
+            str_bonus             as StrBonus,
+            dex_bonus             as DexBonus,
+            con_bonus             as ConBonus,
+            int_bonus             as IntBonus,
+            wis_bonus             as WisBonus,
+            cha_bonus             as ChaBonus,
             price                 as Price,
             amount_available      as AmountAvailable,
             status                as Status,

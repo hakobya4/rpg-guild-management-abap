@@ -44,6 +44,12 @@ etag master LastChangedAt
       ItemSubtype        = item_subtype;
       Description        = description;
       RequiredLevel      = required_level;
+      StrBonus           = str_bonus;
+      DexBonus           = dex_bonus;
+      ConBonus           = con_bonus;
+      IntBonus           = int_bonus;
+      WisBonus           = wis_bonus;
+      ChaBonus           = cha_bonus;
       Price              = price;
       AmountAvailable    = amount_available;
       Status             = status;

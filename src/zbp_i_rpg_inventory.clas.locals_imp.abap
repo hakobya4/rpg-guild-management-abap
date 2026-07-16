@@ -20,7 +20,7 @@ METHOD sellItem.
     DATA inv_deletes TYPE TABLE FOR DELETE zi_rpg_inventory\\Inventory.
 
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
-      SELECT SINGLE item_id, item_name, adventurerid, price, amount
+      SELECT SINGLE item_id, item_name, adventurerid, price, amount, str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus
         FROM zrpg_inventory
         WHERE inventory_id = @<key>-InventoryId
         INTO @DATA(item_data).
@@ -58,17 +58,23 @@ METHOD sellItem.
       DATA(lv_refund) = lv_sell * item_data-price.
 
       " ── 1) Refund gold to the owning adventurer (cross-BO) ──
-      SELECT SINGLE adventurer_gold
+      SELECT SINGLE adventurer_gold, adv_str, adv_dex, adv_con, adv_int, adv_wis, adv_cha
         FROM zrpg_adventurer
         WHERE adventurer_id = @item_data-adventurerid
-        INTO @DATA(lv_gold).
+        INTO @DATA(lv_adv).
 
       IF sy-subrc = 0.
         MODIFY ENTITIES OF zi_rpg_adventurer
           ENTITY Adventurer
-            UPDATE FIELDS ( AdventurerGold )
+            UPDATE FIELDS ( AdventurerGold AdvStr AdvDex AdvCon AdvInt AdvWis AdvCha )
             WITH VALUE #( ( AdventurerId   = item_data-adventurerid
-                            AdventurerGold = lv_gold + lv_refund ) )
+                            AdventurerGold = lv_adv-adventurer_gold + lv_refund
+                            AdvStr = lv_adv-adv_str - item_data-str_bonus
+                            AdvDex = lv_adv-adv_dex - item_data-dex_bonus
+                            AdvCon = lv_adv-adv_con - item_data-con_bonus
+                            AdvInt = lv_adv-adv_int - item_data-int_bonus
+                            AdvWis = lv_adv-adv_wis - item_data-wis_bonus
+                            AdvCha = lv_adv-adv_cha - item_data-cha_bonus ) )
           REPORTED DATA(rep_adv)
           FAILED   DATA(fail_adv).
       ENDIF.

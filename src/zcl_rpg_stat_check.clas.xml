@@ -3,9 +3,9 @@
  <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
   <asx:values>
    <VSEOCLASS>
-    <CLSNAME>ZCL_RPG_NONCOMBAT</CLSNAME>
+    <CLSNAME>ZCL_RPG_STAT_CHECK</CLSNAME>
     <LANGU>E</LANGU>
-    <DESCRIPT>Non combat resolution</DESCRIPT>
+    <DESCRIPT>Check stat modifier</DESCRIPT>
     <STATE>1</STATE>
     <CLSCCINCL>X</CLSCCINCL>
     <FIXPT>X</FIXPT>

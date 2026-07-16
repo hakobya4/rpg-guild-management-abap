@@ -13,27 +13,33 @@ etag master LastChangedAt
 
   field ( readonly, numbering : managed ) InventoryId;
   field ( readonly ) CreatedAt, CreatedBy, LastChangedAt,
-                     LastChangedBy, LocalLastChangedAt;
+  LastChangedBy, LocalLastChangedAt;
 
   action sellItem parameter ZI_RPG_SELL_PARAM;
 
 
   mapping for zrpg_inventory
-  {
-    InventoryId        = inventory_id;
-    AdventurerId       = adventurerid;
-    ItemId             = item_id;
-    ItemName           = item_name;
-    ItemType           = item_type;
-    ItemSubtype        = item_subtype;
-    Description        = description;
-    RequiredLevel      = required_level;
-    Amount             = amount;
-    Price              = price;
-    CreatedAt          = created_at;
-    CreatedBy          = created_by;
-    LastChangedAt      = last_changed_at;
-    LastChangedBy      = last_changed_by;
-    LocalLastChangedAt = local_last_changed_at;
-  }
+    {
+      InventoryId        = inventory_id;
+      AdventurerId       = adventurerid;
+      ItemId             = item_id;
+      ItemName           = item_name;
+      ItemType           = item_type;
+      ItemSubtype        = item_subtype;
+      Description        = description;
+      RequiredLevel      = required_level;
+      StrBonus           = str_bonus;
+      DexBonus           = dex_bonus;
+      ConBonus           = con_bonus;
+      IntBonus           = int_bonus;
+      WisBonus           = wis_bonus;
+      ChaBonus           = cha_bonus;
+      Amount             = amount;
+      Price              = price;
+      CreatedAt          = created_at;
+      CreatedBy          = created_by;
+      LastChangedAt      = last_changed_at;
+      LastChangedBy      = last_changed_by;
+      LocalLastChangedAt = local_last_changed_at;
+    }
 }

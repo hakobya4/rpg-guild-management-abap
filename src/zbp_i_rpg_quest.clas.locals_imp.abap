@@ -187,7 +187,7 @@ CLASS lhc_Quest IMPLEMENTATION.
     DATA quest_updates TYPE TABLE FOR UPDATE zi_rpg_quest\\Quest.
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
 
-      SELECT SINGLE status, adventurer_id, xp_reward, quest_name, required_level, gold_reward, quest_type_name, difficulty_class
+      SELECT SINGLE status, adventurer_id, xp_reward, quest_name, required_level, gold_reward, quest_type_name, difficulty_class, required_stat
         FROM zrpg_quest
         WHERE quest_id = @<key>-QuestId
         INTO @DATA(quest_data).
@@ -218,7 +218,8 @@ CLASS lhc_Quest IMPLEMENTATION.
 
       "update adventurer values
 
-      SELECT SINGLE adventurer_id, adventurer_gold, adventurer_xp, adventurer_level, adventurer_class
+      SELECT SINGLE adventurer_id, adventurer_gold, adventurer_xp, adventurer_level, adventurer_class,
+      adv_str, adv_dex, adv_con, adv_int, adv_wis, adv_cha
         FROM zrpg_adventurer
         WHERE adventurer_id = @quest_data-adventurer_id
         INTO @DATA(lv_adv_stats).
@@ -235,20 +236,23 @@ CLASS lhc_Quest IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
-      DATA(lo_strategy) = zcl_rpg_quest_resolution=>create_strategy(
-                             iv_quest_type       = quest_data-quest_type_name
-                             iv_adventurer_class = lv_adv_stats-adventurer_class ).
-
-      DATA(lv_chance) = lo_strategy->get_success_chance(
-                           iv_adventurer_level = lv_adv_stats-adventurer_level
-                           iv_required_level   = quest_data-required_level ).
+      DATA(lv_modifier) = NEW zcl_rpg_stat_check( )->zif_rpg_quest_resolution~get_check_modifier(
+                             iv_quest_stat       = quest_data-required_stat
+                             iv_adventurer_level = lv_adv_stats-adventurer_level
+                             iv_required_level   = quest_data-required_level
+                             iv_adventurer_str   = lv_adv_stats-adv_str
+                             iv_adventurer_dex   = lv_adv_stats-adv_dex
+                             iv_adventurer_con   = lv_adv_stats-adv_con
+                             iv_adventurer_int   = lv_adv_stats-adv_int
+                             iv_adventurer_wis   = lv_adv_stats-adv_wis
+                             iv_adventurer_cha   = lv_adv_stats-adv_cha ).
 
       IF go_dice_roller IS INITIAL.
         go_dice_roller = NEW zcl_rpg_roll_dice( ).
       ENDIF.
       DATA(lv_roll) = go_dice_roller->roll_dtwenty( ).
 
-      IF lv_roll >= quest_data-difficulty_class.
+      IF lv_roll + lv_modifier >= quest_data-difficulty_class.
         "  Success: mark quest completed and pay out rewards
         APPEND VALUE #(
           %tky   = <key>-%tky
@@ -275,8 +279,8 @@ CLASS lhc_Quest IMPLEMENTATION.
         %tky = <key>-%tky
         %msg = new_message_with_text(
                  severity = if_abap_behv_message=>severity-success
-                 text     = |Quest '{ quest_data-quest_name }' completed! | )
-         ) TO reported-Quest.
+                 text     = |Completed! (rolled { lv_roll } { COND #( WHEN lv_modifier >= 0 THEN '+' ELSE '' ) }{ lv_modifier } | &&
+                            |= { lv_roll + lv_modifier } vs DC { quest_data-difficulty_class })| )         ) TO reported-Quest.
 
       ELSE.
         "  Failure: mark quest failed, no rewards, no XP/gold change
@@ -289,8 +293,9 @@ CLASS lhc_Quest IMPLEMENTATION.
         %tky = <key>-%tky
         %msg = new_message_with_text(
                  severity = if_abap_behv_message=>severity-error
-                 text     = |Quest '{ quest_data-quest_name }' failed! | )
-         ) TO reported-Quest.
+                 text     = |Failed! (rolled { lv_roll } { COND #( WHEN lv_modifier >= 0 THEN '+' ELSE '' ) }{ lv_modifier } | &&
+                            |= { lv_roll + lv_modifier } vs DC { quest_data-difficulty_class })| )
+                     ) TO reported-Quest.
       ENDIF.
     ENDLOOP.
 

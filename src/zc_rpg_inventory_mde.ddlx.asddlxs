@@ -37,6 +37,19 @@ annotate entity ZC_RPG_INVENTORY with
   @UI.identification: [{ position: 70, label: 'Required Level' }]
   RequiredLevel;
 
+  @UI.identification: [{ position: 80, label: 'Strength Bonus' }]
+  StrBonus;
+  @UI.identification: [{ position: 90, label: 'Dexterity Bonus' }]
+  DexBonus;
+  @UI.identification: [{ position: 100, label: 'Constitution Bonus' }]
+  ConBonus;
+  @UI.identification: [{ position: 110, label: 'Intelligence Bonus' }]
+  IntBonus;
+  @UI.identification: [{ position: 120, label: 'Wisdom Bonus' }]
+  WisBonus;
+  @UI.identification: [{ position: 130, label: 'Charisma Bonus' }]
+  ChaBonus;
+
   @UI.lineItem: [{ type:       #FOR_ACTION,
                    dataAction: 'sellItem',
                    label:      'Sell',

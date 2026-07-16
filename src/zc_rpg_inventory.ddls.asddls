@@ -15,5 +15,11 @@ define root view entity ZC_RPG_INVENTORY
       Amount,
       Price,
       RequiredLevel,
+      StrBonus,
+      DexBonus,
+      ConBonus,
+      IntBonus,
+      WisBonus,
+      ChaBonus,
       _Adventurer : redirected to ZC_RPG_ADVENTURER
 }

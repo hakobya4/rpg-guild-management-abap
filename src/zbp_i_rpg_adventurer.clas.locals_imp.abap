@@ -211,68 +211,68 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         ) TO reported-Adventurer.
       ENDIF.
 
-      IF <adv>-AdvStr < 1 OR <adv>-AdvStr > 20.
+      IF <adv>-AdvStr < 1 .
         APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
           %tky            = <adv>-%tky
           %msg            = new_message_with_text(
                                severity = if_abap_behv_message=>severity-error
-                               text     = 'Strength must be between 1 and 20.' )
+                               text     = 'Strength must be higher than 1' )
           %element-AdvStr = if_abap_behv=>mk-on
         ) TO reported-Adventurer.
       ENDIF.
 
-      IF <adv>-AdvDex < 1 OR <adv>-AdvDex > 20.
+      IF <adv>-AdvDex < 1.
         APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
           %tky            = <adv>-%tky
           %msg            = new_message_with_text(
                                severity = if_abap_behv_message=>severity-error
-                               text     = 'Dexterity must be between 1 and 20.' )
+                               text     = 'Dexterity must be higher than 1.' )
           %element-AdvDex = if_abap_behv=>mk-on
         ) TO reported-Adventurer.
       ENDIF.
 
-      IF <adv>-AdvCon < 1 OR <adv>-AdvCon > 20.
+      IF <adv>-AdvCon < 1.
         APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
           %tky            = <adv>-%tky
           %msg            = new_message_with_text(
                                severity = if_abap_behv_message=>severity-error
-                               text     = 'Constitution must be between 1 and 20.' )
+                               text     = 'Constitutionmust be higher than 1.' )
           %element-AdvCon = if_abap_behv=>mk-on
         ) TO reported-Adventurer.
       ENDIF.
 
-      IF <adv>-AdvInt < 1 OR <adv>-AdvInt > 20.
+      IF <adv>-AdvInt < 1.
         APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
           %tky            = <adv>-%tky
           %msg            = new_message_with_text(
                                severity = if_abap_behv_message=>severity-error
-                               text     = 'Intelligence must be between 1 and 20.' )
+                               text     = 'Intelligence must be higher than 1.' )
           %element-AdvInt = if_abap_behv=>mk-on
         ) TO reported-Adventurer.
       ENDIF.
 
-      IF <adv>-AdvWis < 1 OR <adv>-AdvWis > 20.
+      IF <adv>-AdvWis < 1.
         APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
           %tky            = <adv>-%tky
           %msg            = new_message_with_text(
                                severity = if_abap_behv_message=>severity-error
-                               text     = 'Wisdom must be between 1 and 20.' )
+                               text     = 'Wisdom must be higher than 1.' )
           %element-AdvWis = if_abap_behv=>mk-on
         ) TO reported-Adventurer.
       ENDIF.
 
-      IF <adv>-AdvCha < 1 OR <adv>-AdvCha > 20.
+      IF <adv>-AdvCha < 1.
         APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
           %tky            = <adv>-%tky
           %msg            = new_message_with_text(
                                severity = if_abap_behv_message=>severity-error
-                               text     = 'Charisma must be between 1 and 20.' )
+                               text     = 'Charisma must be higher than 1.' )
           %element-AdvCha = if_abap_behv=>mk-on
         ) TO reported-Adventurer.
       ENDIF.
@@ -365,7 +365,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
     " Read adventurer data
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer
-        FIELDS ( AdventurerName AdventurerLevel AdventurerGold )
+        FIELDS ( AdventurerName AdventurerLevel AdventurerGold AdvStr AdvDex AdvCon AdvInt AdvWis AdvCha )
         WITH CORRESPONDING #( keys )
       RESULT DATA(adventurers).
 
@@ -412,10 +412,11 @@ CLASS lhc_Adventurer IMPLEMENTATION.
       ENDIF.
 
       " Checks on item requirments
-      SELECT SINGLE item_name, item_type, item_subtype, description, required_level, price
-        FROM zrpg_marketplace
-        WHERE item_id = @lv_item_id
-        INTO @DATA(item_data).
+      SELECT SINGLE item_name, item_type, item_subtype, description, required_level, price,
+                     str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus
+         FROM zrpg_marketplace
+         WHERE item_id = @lv_item_id
+         INTO @DATA(item_data).
 
       DATA(lv_total_cost) = lv_amount * item_data-price.
 
@@ -495,7 +496,8 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         " First time owning this item, create a new row
         MODIFY ENTITIES OF zi_rpg_inventory
           ENTITY Inventory
-            CREATE FIELDS ( AdventurerId ItemId ItemName ItemType ItemSubtype Description Amount RequiredLevel Price )
+            CREATE FIELDS ( AdventurerId ItemId ItemName ItemType ItemSubtype Description Amount RequiredLevel Price
+                            StrBonus DexBonus ConBonus IntBonus WisBonus ChaBonus )
               WITH VALUE #( ( %cid         = |INV_{ lv_item_id }|
                             AdventurerId = <adv>-AdventurerId
                             ItemId       = lv_item_id
@@ -505,10 +507,31 @@ CLASS lhc_Adventurer IMPLEMENTATION.
                             Description  = item_data-description
                             Amount       = lv_amount
                             RequiredLevel = item_data-required_level
-                            Price        = item_data-price ) )
+                            Price        = item_data-price
+                            StrBonus     = item_data-str_bonus
+                            DexBonus     = item_data-dex_bonus
+                            ConBonus     = item_data-con_bonus
+                            IntBonus     = item_data-int_bonus
+                            WisBonus     = item_data-wis_bonus
+                            ChaBonus     = item_data-cha_bonus  ) )
           REPORTED DATA(rep_inv_c)
           FAILED   DATA(fail_inv_c).
       ENDIF.
+      MODIFY ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
+        ENTITY Adventurer
+        UPDATE FIELDS ( AdvStr AdvDex AdvCon AdvInt AdvWis AdvCha )
+        WITH VALUE #( ( AdventurerId = <adv>-AdventurerId
+                    AdvStr = <adv>-AdvStr + item_data-str_bonus
+                    AdvDex = <adv>-AdvDex + item_data-dex_bonus
+                    AdvCon = <adv>-AdvCon + item_data-con_bonus
+                    AdvInt = <adv>-AdvInt + item_data-int_bonus
+                    AdvWis = <adv>-AdvWis + item_data-wis_bonus
+                    AdvCha = <adv>-AdvCha + item_data-cha_bonus ) )
+      REPORTED DATA(rep_stat_buy)
+      FAILED   DATA(fail_stat_buy).
+
+      reported-Adventurer = CORRESPONDING #(
+        BASE ( reported-Adventurer ) rep_stat_buy-Adventurer ).
 
     ENDLOOP.
 
