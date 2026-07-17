@@ -13,6 +13,7 @@ define root view entity ZI_RPG_INVENTORY
       item_name             as ItemName,
       item_type             as ItemType,
       item_subtype          as ItemSubtype,
+      item_rarity           as ItemRarity,
       description           as Description,
       required_level        as RequiredLevel,
       str_bonus             as StrBonus,

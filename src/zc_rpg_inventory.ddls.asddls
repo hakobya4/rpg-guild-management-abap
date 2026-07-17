@@ -11,6 +11,7 @@ define root view entity ZC_RPG_INVENTORY
       ItemName,
       ItemType,
       ItemSubtype,
+      ItemRarity,
       Description,
       Amount,
       Price,

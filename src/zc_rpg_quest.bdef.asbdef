@@ -13,7 +13,7 @@ define behavior for ZC_RPG_QUEST alias Quest
   use action Discard;
   use action Resume;
   use action Prepare;
-
+  use action previewLootOdds;
   use action completeQuest;
   use action giveupQuest;
   side effects

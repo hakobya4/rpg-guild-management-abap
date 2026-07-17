@@ -37,6 +37,10 @@ etag master LastChangedAt
   //Give up quest, button enabled while the quest is IN_PROGRESS
   action ( features : instance ) giveupQuest result [1] $self;
 
+  // Shows the drop rate for this quest's loot
+  action previewLootOdds result [1] $self;
+
+
   validation validateQuestValues on save { create; field RequiredLevel, XpReward, GoldReward; }
   determination setInitialStatus on modify { create; }
 

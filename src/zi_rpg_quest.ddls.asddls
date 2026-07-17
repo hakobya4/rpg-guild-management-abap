@@ -8,6 +8,8 @@ define root view entity ZI_RPG_QUEST
 
   //  " Shows which adventurer owns this quest
   association [0..1] to ZI_RPG_ADVENTURER as _Adventurer on $projection.AdventurerId = _Adventurer.AdventurerId
+  association [0..*] to ZI_RPG_QUEST_LOOT as _Loot       on $projection.QuestId = _Loot.QuestId
+
 {
   key quest_id              as QuestId,
       quest_name            as QuestName,
@@ -32,5 +34,6 @@ define root view entity ZI_RPG_QUEST
       @Semantics.systemDateTime.localInstanceLastChangedAt: true
       local_last_changed_at as LocalLastChangedAt,
 
-      _Adventurer
+      _Adventurer,
+      _Loot
 }

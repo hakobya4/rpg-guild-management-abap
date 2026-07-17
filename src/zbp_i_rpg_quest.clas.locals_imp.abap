@@ -34,6 +34,8 @@ CLASS lhc_Quest DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR Quest~setInitialStatus.
     METHODS giveupQuest FOR MODIFY
       IMPORTING keys FOR ACTION Quest~giveupQuest RESULT result.
+    METHODS previewLootOdds FOR MODIFY
+      IMPORTING keys FOR ACTION Quest~previewLootOdds RESULT result.
 
 ENDCLASS.
 
@@ -495,6 +497,49 @@ CLASS lhc_Quest IMPLEMENTATION.
       RESULT DATA(result_quests).
 
     result = VALUE #( FOR quest IN result_quests
+                      ( %tky   = quest-%tky
+                        %param = CORRESPONDING #( quest ) ) ).
+  ENDMETHOD.
+
+METHOD previewLootOdds.
+
+    DATA(lo_loot) = NEW zcl_rpg_loot_amdp( ).
+
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
+
+      DATA(lv_quest_id_hex) = CONV zcl_rpg_loot_amdp=>ty_quest_id_hex( <key>-QuestId ).
+
+      lo_loot->get_loot_probabilities(
+        EXPORTING iv_quest_id      = lv_quest_id_hex
+        IMPORTING et_probabilities = DATA(lt_probabilities) ).
+
+      IF lt_probabilities IS INITIAL.
+        APPEND VALUE #(
+          %tky = <key>-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-warning
+                   text     = 'This quest has no loot table configured yet.' )
+        ) TO reported-Quest.
+      ELSE.
+        LOOP AT lt_probabilities INTO DATA(ls_probability).
+          APPEND VALUE #(
+            %tky = <key>-%tky
+            %msg = new_message_with_text(
+                     severity = if_abap_behv_message=>severity-success
+                     text     = |{ ls_probability-dimension }: { ls_probability-value } - | &&
+                                |{ ls_probability-probability_pct }%| )
+          ) TO reported-Quest.
+        ENDLOOP.
+      ENDIF.
+
+    ENDLOOP.
+
+    READ ENTITIES OF zi_rpg_quest IN LOCAL MODE
+      ENTITY Quest ALL FIELDS
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(result_quests_loot).
+
+    result = VALUE #( FOR quest IN result_quests_loot
                       ( %tky   = quest-%tky
                         %param = CORRESPONDING #( quest ) ) ).
   ENDMETHOD.

@@ -11,6 +11,7 @@ define root view entity ZC_RPG_MARKETPLACE
       ItemName,
       ItemType,
       ItemSubtype,
+      ItemRarity,
       Description,
       RequiredLevel,
       StrBonus,

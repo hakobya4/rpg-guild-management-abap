@@ -32,6 +32,12 @@ annotate entity ZC_RPG_MARKETPLACE with
   @UI.identification: [{ position: 10 }]
   @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 10, label: 'Item' }]
   ItemName;
+  
+  
+  @UI.lineItem:       [{ position: 20, label: 'Description', importance: #LOW }]
+  @UI.identification: [{ position: 20 }]
+  @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 20, label: 'Description' }]
+  Description;
 
   @Consumption.valueHelpDefinition: [{
   entity: {
@@ -43,13 +49,31 @@ annotate entity ZC_RPG_MARKETPLACE with
   }],
   useForValidation: true
   }]
-  @UI.lineItem:       [{ position: 20, label: 'Type', importance: #LOW }]
-  @UI.selectionField: [{ position: 20 }]
-  @UI.identification: [{ position: 20 }]
-  @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 20, label: 'Type' }]
+  @UI.lineItem:       [{ position: 30, label: 'Type', importance: #LOW }]
+  @UI.selectionField: [{ position: 30 }]
+  @UI.identification: [{ position: 30 }]
+  @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 30, label: 'Type' }]
   ItemType;
 
+
+  
   @Consumption.valueHelpDefinition: [{
+  entity: {
+    name:    'ZI_RPG_RARITY_VH',
+    element: 'Rarity'
+  },
+  additionalBinding: [{
+    usage:        #RESULT
+  }],
+  useForValidation: true
+  }]
+  @UI.lineItem:       [{ position: 40, label: 'Rarity' }]
+  @UI.selectionField: [{ position: 40 }]
+  @UI.identification: [{ position: 40 }]
+  @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 40, label: 'Rarity' }]
+  ItemRarity;
+  
+    @Consumption.valueHelpDefinition: [{
   entity: {
   name:    'ZI_ItemSubtype_VH',
   element: 'ItemSubtype'
@@ -61,16 +85,12 @@ annotate entity ZC_RPG_MARKETPLACE with
   }],
   useForValidation: true
   }]
-  @UI.lineItem:       [{ position: 30, label: 'Subtype', importance: #LOW }]
-  @UI.selectionField: [{ position: 30 }]
-  @UI.identification: [{ position: 30 }]
-  @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 30, label: 'Subtype' }]
+  @UI.lineItem:       [{ position: 50, label: 'Subtype', importance: #LOW }]
+  @UI.selectionField: [{ position: 50 }]
+  @UI.identification: [{ position: 50 }]
+  @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 50, label: 'Subtype' }]
   ItemSubtype;
 
-  @UI.lineItem:       [{ position: 40, label: 'Description', importance: #LOW }]
-  @UI.identification: [{ position: 40 }]
-  @UI.fieldGroup:     [{ qualifier: 'ItemDetails', position: 40, label: 'Description' }]
-  Description;
 
   @UI.lineItem:       [{ position: 50, label: 'Required Level', importance: #MEDIUM }]
   @UI.identification: [{ position: 50 }]

@@ -26,6 +26,7 @@ etag master LastChangedAt
       ItemName           = item_name;
       ItemType           = item_type;
       ItemSubtype        = item_subtype;
+      ItemRarity         = item_rarity;
       Description        = description;
       RequiredLevel      = required_level;
       StrBonus           = str_bonus;

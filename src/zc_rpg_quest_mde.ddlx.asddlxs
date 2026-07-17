@@ -20,6 +20,11 @@ annotate view ZC_RPG_QUEST with
       id: 'Requirements', purpose: #STANDARD,
       type: #FIELDGROUP_REFERENCE, label: 'Requirements',
       position: 20, targetQualifier: 'Requirements'
+    },
+    {
+      id: 'LootTable', purpose: #STANDARD,
+      type: #LINEITEM_REFERENCE, label: 'Loot Table',
+      position: 30, targetElement: '_Loot'
     }
   ]
 
@@ -29,17 +34,17 @@ annotate view ZC_RPG_QUEST with
   @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 10, label: 'Quest Name' }]
   QuestName;
 
-   @Consumption.valueHelpDefinition: [{
-      entity: {
-        name:    'ZI_RPG_QUESTTYPE_VH',
-        element: 'QuestTypeName'
-      },
-      additionalBinding: [{
-        usage:        #RESULT
-      }],
-      useForValidation: true
-    }]
-  
+  @Consumption.valueHelpDefinition: [{
+     entity: {
+       name:    'ZI_RPG_QUESTTYPE_VH',
+       element: 'QuestTypeName'
+     },
+     additionalBinding: [{
+       usage:        #RESULT
+     }],
+     useForValidation: true
+   }]
+
   @UI.lineItem:       [{ position: 20, label: 'Quest Type' }]
   @UI.selectionField: [{ position: 20 }]
   @UI.identification: [{ position: 20 }]
@@ -56,29 +61,29 @@ annotate view ZC_RPG_QUEST with
   @UI.identification: [{ position: 40 }]
   @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 10, label: 'Required Level' }]
   RequiredLevel;
-  
-     @Consumption.valueHelpDefinition: [{
-      entity: {
-        name:    'ZI_RPG_STAT_VH',
-        element: 'QuestStat'
-      },
-      additionalBinding: [{
-        usage:        #RESULT
-      }],
-      useForValidation: true
-    }]
-  
+
+  @Consumption.valueHelpDefinition: [{
+   entity: {
+     name:    'ZI_RPG_STAT_VH',
+     element: 'QuestStat'
+   },
+   additionalBinding: [{
+     usage:        #RESULT
+   }],
+   useForValidation: true
+  }]
+
   @UI.lineItem:       [{ position: 50, label: 'Required Stat' }]
   @UI.identification: [{ position: 50 }]
   @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 20, label: 'Required Stat' }]
   RequiredStat;
-  
+
   @UI.lineItem:       [{ position: 60, label: 'XP Reward' }]
   @UI.identification: [{ position: 60 }]
   @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 30, label: 'XP Reward' }]
   XpReward;
-  
-   @UI.lineItem:       [{ position: 70, label: 'Difficulty Class' }]
+
+  @UI.lineItem:       [{ position: 70, label: 'Difficulty Class' }]
   @UI.identification: [{ position: 70 }]
   @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 40, label: 'Difficulty Class' }]
   DifficultyClass;
@@ -95,6 +100,10 @@ annotate view ZC_RPG_QUEST with
   @UI.lineItem: [{ type:       #FOR_ACTION,
                  dataAction: 'completeQuest',
                  label:      'Complete',
+                 inline:     true },
+                 { type:       #FOR_ACTION,
+                 dataAction: 'previewLootOdds',
+                 label:      'Preview Loot Odds',
                  inline:     true }]
 
   QuestId;

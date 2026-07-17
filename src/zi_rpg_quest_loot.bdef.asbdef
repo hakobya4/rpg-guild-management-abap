@@ -1,0 +1,30 @@
+managed implementation in class ZBP_I_RPG_QUEST_LOOT unique;
+strict ( 2 );
+
+define behavior for ZI_RPG_QUEST_LOOT alias QuestLoot
+persistent table zrpg_quest_loot
+lock master
+authorization master ( global )
+{
+  create;
+  delete;
+
+  field ( readonly, numbering : managed ) LootId;
+  field ( readonly ) CreatedAt, CreatedBy, LastChangedAt,
+  LastChangedBy, LocalLastChangedAt;
+  field ( mandatory ) QuestId, ItemId;
+
+  association _Quest;
+
+  mapping for zrpg_quest_loot
+    {
+      LootId             = loot_id;
+      QuestId            = quest_id;
+      ItemId             = item_id;
+      CreatedAt          = created_at;
+      CreatedBy          = created_by;
+      LastChangedAt      = last_changed_at;
+      LastChangedBy      = last_changed_by;
+      LocalLastChangedAt = local_last_changed_at;
+    }
+}
