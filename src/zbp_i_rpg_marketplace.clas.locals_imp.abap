@@ -24,6 +24,10 @@ CLASS lhc_Marketplace DEFINITION INHERITING FROM cl_abap_behavior_handler.
     METHODS restock FOR MODIFY
       IMPORTING keys FOR ACTION Marketplace~restock.
 
+        " Blocks deletion of items that an adventurer still owns
+    METHODS precheck_delete FOR PRECHECK
+      IMPORTING keys FOR DELETE Marketplace.
+
 ENDCLASS.
 
 CLASS lhc_Marketplace IMPLEMENTATION.
@@ -367,6 +371,33 @@ CLASS lhc_Marketplace IMPLEMENTATION.
                       ( %tky   = quest-%tky
                         %param = CORRESPONDING #( quest ) ) ).
   ENDMETHOD.
+
+    METHOD precheck_delete.
+
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
+
+      SELECT COUNT(*)
+        FROM zrpg_inventory
+        WHERE item_id = @<key>-ItemId
+        INTO @DATA(lv_owned_count).
+
+      IF lv_owned_count > 0.
+        APPEND VALUE #( %tky        = <key>-%tky
+                        %fail-cause = if_abap_behv=>cause-dependency
+        ) TO failed-Marketplace.
+        APPEND VALUE #(
+          %tky = <key>-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-error
+                   text     = |Item cannot be deleted:|
+                           && | { lv_owned_count } adventurer(s) still own it.| )
+        ) TO reported-Marketplace.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
 
 ENDCLASS.
 

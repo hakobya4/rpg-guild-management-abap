@@ -11,7 +11,8 @@ etag master LastChangedAt
 {
   create;
   update;
-  delete;
+    // Precheck blocks deletion while an adventurer still owns the item
+  delete ( precheck );
 
   draft action Activate optimized;
   draft action Discard;

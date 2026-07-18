@@ -105,7 +105,9 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         AdventurerLevel = 1
         AdventurerXp    = 0
         AdventurerGold  = 0
-        AdventurerClass = c_adventurer_class
+        AdventurerClass = COND #( WHEN <adv>-AdventurerClass IS INITIAL
+                                   THEN c_adventurer_class
+                                   ELSE <adv>-AdventurerClass )
       ) TO updates.
     ENDLOOP.
 

@@ -10,6 +10,20 @@ annotate entity ZC_RPG_QUEST_LOOT with
 {
   @Consumption.valueHelpDefinition: [{
     entity: {
+      name:    'ZC_RPG_QUEST',
+      element: 'QuestId'
+    },
+    additionalBinding: [{
+      usage:        #RESULT
+    }],
+    useForValidation: true
+  }]
+  @UI.lineItem:       [{ position: 5, label: 'Quest' }]
+  @UI.identification: [{ position: 5, label: 'Quest' }]
+  QuestId;
+
+  @Consumption.valueHelpDefinition: [{
+    entity: {
       name:    'ZI_RPG_LOOT_ITEM_VH',
       element: 'ItemId'
     },

@@ -212,49 +212,69 @@ CLASS zcl_rpg_cleanup IMPLEMENTATION.
 
     ).
 
-    DATA lt_create TYPE TABLE FOR CREATE zi_rpg_loot_items\\LootItem.
+   TYPES: BEGIN OF ty_insert,
+             client                 TYPE sy-mandt,
+             item_id                TYPE sysuuid_x16,
+             item_name              TYPE zrpg_loot_items-item_name,
+             item_type              TYPE zrpg_loot_items-item_type,
+             item_subtype           TYPE zrpg_loot_items-item_subtype,
+             item_rarity            TYPE zrpg_loot_items-item_rarity,
+             description            TYPE zrpg_loot_items-description,
+             required_level         TYPE zrpg_loot_items-required_level,
+             str_bonus              TYPE zrpg_loot_items-str_bonus,
+             dex_bonus              TYPE zrpg_loot_items-dex_bonus,
+             con_bonus              TYPE zrpg_loot_items-con_bonus,
+             int_bonus              TYPE zrpg_loot_items-int_bonus,
+             wis_bonus              TYPE zrpg_loot_items-wis_bonus,
+             cha_bonus              TYPE zrpg_loot_items-cha_bonus,
+             price                  TYPE zrpg_loot_items-price,
+             created_at             TYPE zrpg_loot_items-created_at,
+             created_by             TYPE zrpg_loot_items-created_by,
+             last_changed_at        TYPE zrpg_loot_items-last_changed_at,
+             last_changed_by        TYPE zrpg_loot_items-last_changed_by,
+             local_last_changed_at  TYPE zrpg_loot_items-local_last_changed_at,
+           END OF ty_insert.
 
-    LOOP AT lt_seed INTO DATA(ls_seed).
-      APPEND VALUE #(
-        %cid          = |SEED_{ sy-tabix }|
-        ItemName      = ls_seed-item_name
-        ItemType      = ls_seed-item_type
-        ItemSubtype   = ls_seed-item_subtype
-        ItemRarity        = ls_seed-item_rarity
-        Description   = ls_seed-description
-        RequiredLevel = ls_seed-required_level
-        StrBonus      = ls_seed-str_bonus
-        DexBonus      = ls_seed-dex_bonus
-        ConBonus      = ls_seed-con_bonus
-        IntBonus      = ls_seed-int_bonus
-        WisBonus      = ls_seed-wis_bonus
-        ChaBonus      = ls_seed-cha_bonus
-        Price         = ls_seed-price
-      ) TO lt_create.
-    ENDLOOP.
+       DATA lt_insert TYPE STANDARD TABLE OF ty_insert WITH EMPTY KEY.
+    DATA(lv_now) = utclong_current( ).
 
-    MODIFY ENTITIES OF zi_rpg_loot_items
-      ENTITY LootItem
-        CREATE FIELDS ( ItemName ItemType ItemSubtype ItemRarity Description RequiredLevel
-                        StrBonus DexBonus ConBonus IntBonus WisBonus ChaBonus Price )
-        WITH lt_create
-      MAPPED   DATA(mapped)
-      FAILED   DATA(failed)
-      REPORTED DATA(reported).
+    TRY.
+        LOOP AT lt_seed INTO DATA(ls_seed).
+          APPEND VALUE #(
+            client                = sy-mandt
+            item_id               = cl_system_uuid=>create_uuid_x16_static( )
+            item_name             = ls_seed-item_name
+            item_type             = ls_seed-item_type
+            item_subtype          = ls_seed-item_subtype
+            item_rarity           = ls_seed-item_rarity
+            description           = ls_seed-description
+            required_level        = ls_seed-required_level
+            str_bonus              = ls_seed-str_bonus
+            dex_bonus              = ls_seed-dex_bonus
+            con_bonus              = ls_seed-con_bonus
+            int_bonus              = ls_seed-int_bonus
+            wis_bonus              = ls_seed-wis_bonus
+            cha_bonus              = ls_seed-cha_bonus
+            price                  = ls_seed-price
+            created_at             = lv_now
+            created_by             = sy-uname
+            last_changed_at        = lv_now
+            last_changed_by        = sy-uname
+            local_last_changed_at  = lv_now
+          ) TO lt_insert.
+        ENDLOOP.
+      CATCH cx_uuid_error INTO DATA(lx_uuid).
+        out->write( |UUID generation failed: { lx_uuid->get_text( ) }| ).
+        RETURN.
+    ENDTRY.
 
-    COMMIT ENTITIES.
+    INSERT zrpg_loot_items FROM TABLE @lt_insert.
 
-    out->write( |Created { lines( mapped-lootitem ) } of { lines( lt_seed ) } loot items.| ).
-
-    IF failed-lootitem IS NOT INITIAL.
-      out->write( |{ lines( failed-lootitem ) } failed:| ).
-      LOOP AT reported-lootitem INTO DATA(ls_msg).
-        IF ls_msg-%msg IS BOUND.
-          out->write( ls_msg-%msg->if_message~get_text( ) ).
-        ENDIF.
-      ENDLOOP.
+    IF sy-subrc = 0.
+      out->write( |Inserted { lines( lt_insert ) } loot items.| ).
+    ELSE.
+      out->write( 'Insert failed.' ).
     ENDIF.
-
   ENDMETHOD.
 
 ENDCLASS.

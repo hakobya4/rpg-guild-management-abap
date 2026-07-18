@@ -12,7 +12,16 @@ CLASS lhc_Quest DEFINITION INHERITING FROM cl_abap_behavior_handler.
       c_status_in_progress TYPE zrpg_quest-status VALUE 'IN_PROGRESS',
       c_status_completed   TYPE zrpg_quest-status VALUE 'COMPLETED',
       c_status_failed      TYPE zrpg_quest-status VALUE 'FAILED',
-      c_xp_per_level       TYPE i                 VALUE 10.
+      c_xp_per_level       TYPE i                 VALUE 10,
+
+      " Loot odds: 30% chance of any drop
+      " COMMON 60% / UNCOMMON 25% / RARE 10% / LEGENDARY 5%.
+      c_pct_any_drop       TYPE i VALUE 30,
+      c_pct_common         TYPE i VALUE 60,
+      c_pct_uncommon       TYPE i VALUE 25,
+      c_pct_rare           TYPE i VALUE 10,
+      c_pct_legendary      TYPE i VALUE 5.
+
 
     METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
       IMPORTING REQUEST requested_authorizations FOR Quest RESULT result.
@@ -36,6 +45,8 @@ CLASS lhc_Quest DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR ACTION Quest~giveupQuest RESULT result.
     METHODS previewLootOdds FOR MODIFY
       IMPORTING keys FOR ACTION Quest~previewLootOdds RESULT result.
+    METHODS linkAllLootItems FOR DETERMINE ON SAVE
+      IMPORTING keys FOR Quest~linkAllLootItems.
 
 ENDCLASS.
 
@@ -287,15 +298,15 @@ CLASS lhc_Quest IMPLEMENTATION.
         " ── Loot roll: 30% chance of any drop at all ──
         DATA(lv_loot_roll) = go_dice_roller->roll_percentage( ).
 
-        IF lv_loot_roll <= 30.
+        IF lv_loot_roll <= c_pct_any_drop.
 
           " rarity odds (COMMON 60 / UNCOMMON 25 / RARE 10 / LEGENDARY 5).
           DATA(lv_rarity_roll) = go_dice_roller->roll_percentage( ).
           DATA(lv_rolled_rarity) = COND zrpg_loot_items-item_rarity(
-            WHEN lv_rarity_roll <= 60 THEN 'COMMON'
-            WHEN lv_rarity_roll <= 85 THEN 'UNCOMMON'
-            WHEN lv_rarity_roll <= 95 THEN 'RARE'
-            ELSE                            'LEGENDARY' ).
+            WHEN lv_rarity_roll <= c_pct_common                                     THEN 'COMMON'
+            WHEN lv_rarity_roll <= c_pct_common + c_pct_uncommon                     THEN 'UNCOMMON'
+            WHEN lv_rarity_roll <= c_pct_common + c_pct_uncommon + c_pct_rare        THEN 'RARE'
+            ELSE                                                                          'LEGENDARY' ).
 
           " Eligible items, this quest's loot pool, filtered to the
           " rolled rarity.
@@ -620,20 +631,24 @@ CLASS lhc_Quest IMPLEMENTATION.
           %tky = <key>-%tky
           %msg = new_message_with_text(
                    severity = if_abap_behv_message=>severity-warning
-                   text     = 'This quest has no loot table configured yet.' )
+                   text     = 'This quest has no loot linked yet.' )
         ) TO reported-Quest.
-      ELSE.
-        LOOP AT lt_probabilities INTO DATA(ls_probability).
-          APPEND VALUE #(
-            %tky = <key>-%tky
-            %msg = new_message_with_text(
-                     severity = if_abap_behv_message=>severity-success
-                     text     = |{ ls_probability-dimension }: { ls_probability-value } - | &&
-                                |{ ls_probability-probability_pct }%| )
-          ) TO reported-Quest.
-        ENDLOOP.
+        CONTINUE.
       ENDIF.
 
+      LOOP AT lt_probabilities INTO DATA(ls_probability).
+        DATA(lv_text) = COND string(
+          WHEN ls_probability-dimension = 'DROP_CHANCE'
+            THEN |Chance of any loot at all: { ls_probability-probability_pct }%|
+          ELSE |{ ls_probability-dimension }: { ls_probability-value } - { ls_probability-probability_pct }% | ).
+        APPEND VALUE #(
+          %tky = <key>-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-success
+text     = lv_text )
+        ) TO reported-Quest.
+
+      ENDLOOP.
     ENDLOOP.
 
     READ ENTITIES OF zi_rpg_quest IN LOCAL MODE
@@ -644,7 +659,52 @@ CLASS lhc_Quest IMPLEMENTATION.
     result = VALUE #( FOR quest IN result_quests_loot
                       ( %tky   = quest-%tky
                         %param = CORRESPONDING #( quest ) ) ).
+
   ENDMETHOD.
+
+  METHOD linkAllLootItems.
+
+    SELECT item_id
+      FROM zrpg_loot_items
+      INTO TABLE @DATA(lt_loot_items).
+
+    CHECK lt_loot_items IS NOT INITIAL.
+
+    DATA lt_loot_create TYPE TABLE FOR CREATE zi_rpg_quest_loot\\QuestLoot.
+    DATA lv_cid_counter TYPE i.
+
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
+
+      " Don't duplicate links if this determination somehow runs twice
+      SELECT SINGLE @abap_true
+        FROM zrpg_quest_loot
+        WHERE quest_id = @<key>-QuestId
+        INTO @DATA(lv_already_linked).
+
+      CHECK lv_already_linked <> abap_true.
+
+      LOOP AT lt_loot_items INTO DATA(ls_item).
+        lv_cid_counter += 1.
+        APPEND VALUE #(
+          %cid    = |QLOOT_{ lv_cid_counter }|
+          QuestId = <key>-QuestId
+          ItemId  = ls_item-item_id
+        ) TO lt_loot_create.
+      ENDLOOP.
+
+    ENDLOOP.
+
+    CHECK lt_loot_create IS NOT INITIAL.
+
+    MODIFY ENTITIES OF zi_rpg_quest_loot
+      ENTITY QuestLoot
+        CREATE FIELDS ( QuestId ItemId )
+        WITH lt_loot_create
+      REPORTED DATA(rep_loot)
+      FAILED   DATA(fail_loot).
+
+  ENDMETHOD.
+
 
 ENDCLASS.
 

@@ -5,8 +5,8 @@
 
 define root view entity ZI_RPG_QUEST_LOOT
   as select from zrpg_quest_loot
-
   association [1..1] to ZI_RPG_QUEST as _Quest on $projection.QuestId = _Quest.QuestId
+  
 {
   key loot_id              as LootId,
       quest_id              as QuestId,
