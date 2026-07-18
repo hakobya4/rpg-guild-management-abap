@@ -1,0 +1,5 @@
+CLASS zbp_i_rpg_loot_items DEFINITION PUBLIC ABSTRACT FINAL FOR BEHAVIOR OF zi_rpg_loot_items.
+ENDCLASS.
+
+CLASS zbp_i_rpg_loot_items IMPLEMENTATION.
+ENDCLASS.

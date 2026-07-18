@@ -10,7 +10,7 @@ annotate entity ZC_RPG_QUEST_LOOT with
 {
   @Consumption.valueHelpDefinition: [{
     entity: {
-      name:    'ZI_RPG_ITEM_VH',
+      name:    'ZI_RPG_LOOT_ITEM_VH',
       element: 'ItemId'
     },
     additionalBinding: [{

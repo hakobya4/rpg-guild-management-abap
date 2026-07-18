@@ -1,0 +1,48 @@
+managed implementation in class ZBP_I_RPG_LOOT_ITEMS unique;
+strict ( 2 );
+with draft;
+
+define behavior for ZI_RPG_LOOT_ITEMS alias LootItem
+persistent table zrpg_loot_items
+draft table zrpg_loot_itemsd
+lock master total etag LastChangedAt
+authorization master ( global )
+etag master LastChangedAt
+{
+  create;
+  update;
+  delete;
+
+  draft action Activate optimized;
+  draft action Discard;
+  draft action Edit;
+  draft action Resume;
+  draft determine action Prepare;
+
+  field ( readonly, numbering : managed ) ItemId;
+  field ( readonly ) CreatedAt, CreatedBy, LastChangedAt,
+  LastChangedBy, LocalLastChangedAt;
+  field ( mandatory ) ItemName, ItemType, ItemRarity, RequiredLevel, Price;
+  mapping for zrpg_loot_items
+    {
+      ItemId             = item_id;
+      ItemName           = item_name;
+      ItemType           = item_type;
+      ItemSubtype        = item_subtype;
+      ItemRarity         = item_rarity;
+      Description        = description;
+      RequiredLevel      = required_level;
+      StrBonus           = str_bonus;
+      DexBonus           = dex_bonus;
+      ConBonus           = con_bonus;
+      IntBonus           = int_bonus;
+      WisBonus           = wis_bonus;
+      ChaBonus           = cha_bonus;
+      Price              = price;
+      CreatedAt          = created_at;
+      CreatedBy          = created_by;
+      LastChangedAt      = last_changed_at;
+      LastChangedBy      = last_changed_by;
+      LocalLastChangedAt = local_last_changed_at;
+    }
+}

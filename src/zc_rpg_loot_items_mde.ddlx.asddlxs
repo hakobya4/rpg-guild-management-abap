@@ -1,0 +1,94 @@
+@Metadata.layer: #CORE
+
+@UI.headerInfo:{
+    typeName:       'Loot Item',
+    typeNamePlural: 'Loot Items',
+    title:{ type: #STANDARD, value: 'ItemName' },
+    description:{ type: #STANDARD, value: 'ItemRarity' }
+}
+
+annotate entity ZC_RPG_LOOT_ITEMS with
+{
+  @UI.lineItem:       [{ position: 10, label: 'Item' }]
+  @UI.selectionField: [{ position: 10 }]
+  @UI.identification: [{ position: 10 }]
+  ItemName;
+
+  @Consumption.valueHelpDefinition: [{
+    entity: {
+      name:    'ZI_ItemType_VH',
+      element: 'ItemType'
+    },
+    additionalBinding: [{
+      usage:        #RESULT
+    }],
+    useForValidation: true
+  }]
+  @UI.lineItem:       [{ position: 20, label: 'Type' }]
+  @UI.selectionField: [{ position: 20 }]
+  @UI.identification: [{ position: 20 }]
+  ItemType;
+
+  @Consumption.valueHelpDefinition: [{
+    entity: {
+      name:    'ZI_ItemSubtype_VH',
+      element: 'ItemSubtype'
+    },
+    additionalBinding: [{
+      localElement: 'ItemType',
+      element:      'ItemType',
+      usage:        #FILTER
+    }],
+    useForValidation: true
+  }]
+  @UI.lineItem:       [{ position: 25, label: 'Subtype' }]
+  @UI.selectionField: [{ position: 25 }]
+  @UI.identification: [{ position: 25 }]
+  ItemSubtype;
+
+  @Consumption.valueHelpDefinition: [{
+    entity: {
+      name:    'ZI_RPG_RARITY_VH',
+      element: 'Rarity'
+    },
+    additionalBinding: [{
+      usage:        #RESULT
+    }],
+    useForValidation: true
+  }]
+  @UI.lineItem:       [{ position: 30, label: 'Rarity' }]
+  @UI.selectionField: [{ position: 30 }]
+  @UI.identification: [{ position: 30 }]
+  ItemRarity;
+
+  @UI.lineItem:       [{ position: 40, label: 'Description' }]
+  @UI.identification: [{ position: 40 }]
+  Description;
+
+  @UI.lineItem:       [{ position: 45, label: 'Required Level' }]
+  @UI.selectionField: [{ position: 45 }]
+  @UI.identification: [{ position: 45 }]
+  RequiredLevel;
+
+  @UI.identification: [{ position: 50, label: 'Strength Bonus' }]
+  StrBonus;
+
+  @UI.identification: [{ position: 60, label: 'Dexterity Bonus' }]
+  DexBonus;
+
+  @UI.identification: [{ position: 70, label: 'Constitution Bonus' }]
+  ConBonus;
+
+  @UI.identification: [{ position: 80, label: 'Intelligence Bonus' }]
+  IntBonus;
+
+  @UI.identification: [{ position: 90, label: 'Wisdom Bonus' }]
+  WisBonus;
+
+  @UI.identification: [{ position: 100, label: 'Charisma Bonus' }]
+  ChaBonus;
+
+  @UI.lineItem:       [{ position: 110, label: 'Price' }]
+  @UI.identification: [{ position: 110 }]
+  Price;
+}

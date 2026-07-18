@@ -10,4 +10,6 @@ define service ZRPG_GUILD_SD {
   expose ZC_RPG_INVENTORY    as Inventory;
   expose ZI_RPG_QUESTTYPE_VH as QuestTypeVH;
   expose ZC_RPG_QUEST_LOOT   as QuestLoot;
+  expose ZC_RPG_LOOT_ITEMS   as LootItem;
+  expose ZI_RPG_LOOT_ITEM_VH as LootItemVH;
 }

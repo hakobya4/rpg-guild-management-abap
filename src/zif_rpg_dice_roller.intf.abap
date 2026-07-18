@@ -7,5 +7,7 @@ INTERFACE zif_rpg_dice_roller
    " Rolls 4d6, drops the lowest, and sums the rest
     METHODS roll_stats
       RETURNING VALUE(rv_roll) TYPE i.
+    METHODS roll_percentage
+      RETURNING VALUE(rv_roll) TYPE i.
 
 ENDINTERFACE.

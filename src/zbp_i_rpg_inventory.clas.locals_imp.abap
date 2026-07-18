@@ -20,8 +20,10 @@ METHOD sellItem.
     DATA inv_deletes TYPE TABLE FOR DELETE zi_rpg_inventory\\Inventory.
 
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
-      SELECT SINGLE item_id, item_name, adventurerid, price, amount, str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus
-        FROM zrpg_inventory
+            SELECT SINGLE item_id, item_name, item_type, item_subtype, item_rarity, description,
+                    required_level, adventurerid, price, amount,
+                    str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus
+          FROM zrpg_inventory
         WHERE inventory_id = @<key>-InventoryId
         INTO @DATA(item_data).
 
@@ -79,13 +81,53 @@ METHOD sellItem.
           FAILED   DATA(fail_adv).
       ENDIF.
 
-      MODIFY ENTITIES OF zi_rpg_marketplace
-        ENTITY Marketplace
-          EXECUTE restock
-          FROM VALUE #( ( ItemId        = item_data-item_id
-                          %param-Amount = lv_sell ) )
-        REPORTED DATA(rep_mkt)
-        FAILED   DATA(fail_mkt).
+      SELECT SINGLE item_id
+        FROM zrpg_marketplace
+        WHERE item_id = @item_data-item_id
+        INTO @DATA(lv_mkt_item_id).
+
+      IF sy-subrc <> 0.
+        SELECT SINGLE item_id
+          FROM zrpg_marketplace
+          WHERE item_name = @item_data-item_name
+          INTO @lv_mkt_item_id.
+      ENDIF.
+
+      IF sy-subrc = 0.
+        MODIFY ENTITIES OF zi_rpg_marketplace
+          ENTITY Marketplace
+            EXECUTE restock
+            FROM VALUE #( ( ItemId        = lv_mkt_item_id
+                            %param-Amount = lv_sell ) )
+          REPORTED DATA(rep_mkt)
+          FAILED   DATA(fail_mkt).
+      ELSE.
+        " First time this loot item is sold - list it on the marketplace
+        " using its own item data, so it becomes purchasable by others.
+        MODIFY ENTITIES OF zi_rpg_marketplace
+          ENTITY Marketplace
+            CREATE FIELDS ( ItemName ItemType ItemSubtype ItemRarity Description RequiredLevel
+                            StrBonus DexBonus ConBonus IntBonus WisBonus ChaBonus
+                            Price AmountAvailable )
+              WITH VALUE #( ( %cid            = |LOOT_MKT_{ item_data-item_id }|
+                              ItemName        = item_data-item_name
+                              ItemType        = item_data-item_type
+                              ItemSubtype     = item_data-item_subtype
+                              ItemRarity          = item_data-item_rarity
+                              Description     = item_data-description
+                              RequiredLevel   = item_data-required_level
+                              StrBonus        = item_data-str_bonus
+                              DexBonus        = item_data-dex_bonus
+                              ConBonus        = item_data-con_bonus
+                              IntBonus        = item_data-int_bonus
+                              WisBonus        = item_data-wis_bonus
+                              ChaBonus        = item_data-cha_bonus
+                              Price           = item_data-price
+                              AmountAvailable = lv_sell ) )
+          REPORTED DATA(rep_mkt_c)
+          FAILED   DATA(fail_mkt_c).
+      ENDIF.
+
 
       " ── 3) Reduce or remove the inventory stack (own BO, local mode) ──
       IF lv_sell = item_data-amount.

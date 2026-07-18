@@ -625,15 +625,6 @@ text     = |{ adv_data-adventurer_name } is already a member of { guild_data-gui
       failed-Adventurer   = CORRESPONDING #( BASE ( failed-Adventurer ) fail-Adventurer ).
     ENDIF.
 
-    IF fail-Adventurer IS NOT INITIAL.
-      APPEND VALUE #(
-        %tky = fail-Adventurer[ 1 ]-%tky
-        %msg = new_message_with_text(
-                 severity = if_abap_behv_message=>severity-error
-                 text     = |DEBUG nested update fail-cause: { fail-Adventurer[ 1 ]-%fail-cause }| )
-      ) TO reported-Adventurer.
-    ENDIF.
-
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer ALL FIELDS WITH CORRESPONDING #( keys )
       RESULT DATA(result_adventurers).

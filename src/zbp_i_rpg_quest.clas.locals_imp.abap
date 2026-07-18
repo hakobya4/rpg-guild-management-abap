@@ -189,7 +189,7 @@ CLASS lhc_Quest IMPLEMENTATION.
     DATA quest_updates TYPE TABLE FOR UPDATE zi_rpg_quest\\Quest.
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
 
-      SELECT SINGLE status, adventurer_id, xp_reward, quest_name, required_level, gold_reward, quest_type_name, difficulty_class, required_stat
+      SELECT SINGLE status, adventurer_id, xp_reward, quest_name, required_level, gold_reward, quest_type_name, difficulty_class, required_stat, quest_id
         FROM zrpg_quest
         WHERE quest_id = @<key>-QuestId
         INTO @DATA(quest_data).
@@ -283,6 +283,108 @@ CLASS lhc_Quest IMPLEMENTATION.
                  severity = if_abap_behv_message=>severity-success
                  text     = |Completed! (rolled { lv_roll } { COND #( WHEN lv_modifier >= 0 THEN '+' ELSE '' ) }{ lv_modifier } | &&
                             |= { lv_roll + lv_modifier } vs DC { quest_data-difficulty_class })| )         ) TO reported-Quest.
+
+        " ── Loot roll: 30% chance of any drop at all ──
+        DATA(lv_loot_roll) = go_dice_roller->roll_percentage( ).
+
+        IF lv_loot_roll <= 30.
+
+          " rarity odds (COMMON 60 / UNCOMMON 25 / RARE 10 / LEGENDARY 5).
+          DATA(lv_rarity_roll) = go_dice_roller->roll_percentage( ).
+          DATA(lv_rolled_rarity) = COND zrpg_loot_items-item_rarity(
+            WHEN lv_rarity_roll <= 60 THEN 'COMMON'
+            WHEN lv_rarity_roll <= 85 THEN 'UNCOMMON'
+            WHEN lv_rarity_roll <= 95 THEN 'RARE'
+            ELSE                            'LEGENDARY' ).
+
+          " Eligible items, this quest's loot pool, filtered to the
+          " rolled rarity.
+          SELECT li~item_id, li~item_name, li~item_type, li~item_subtype,
+                li~description, li~required_level, li~price, li~str_bonus,
+                 li~dex_bonus, li~con_bonus, li~int_bonus, li~wis_bonus, li~cha_bonus
+                     FROM zrpg_quest_loot AS ql
+                     INNER JOIN zrpg_loot_items AS li ON ql~item_id = li~item_id
+            WHERE ql~quest_id       = @quest_data-quest_id
+              AND li~item_rarity         = @lv_rolled_rarity
+              AND li~required_level <= @lv_adv_stats-adventurer_level
+                     INTO TABLE @DATA(lt_eligible_items).
+
+          IF lt_eligible_items IS INITIAL.
+            APPEND VALUE #(
+              %tky = <key>-%tky
+              %msg = new_message_with_text(
+                       severity = if_abap_behv_message=>severity-information
+                       text     = |Loot roll unsuccessful due to level.| )
+            ) TO reported-Quest.
+          ELSE.
+            " Pick one at random among the eligible items of that rarity.
+            DATA(lv_pick_index) = go_dice_roller->roll_percentage( ) MOD lines( lt_eligible_items ) + 1.
+            DATA(ls_won_item) = lt_eligible_items[ lv_pick_index ].
+
+            SELECT SINGLE inventory_id, amount
+              FROM zrpg_inventory
+              WHERE adventurerid = @quest_data-adventurer_id
+                AND item_id       = @ls_won_item-item_id
+              INTO @DATA(ls_existing_loot_inv).
+
+            IF sy-subrc = 0.
+              " Already own it - just add another one, no repeated bonus.
+              MODIFY ENTITIES OF zi_rpg_inventory
+                ENTITY Inventory
+                  UPDATE FIELDS ( Amount )
+                  WITH VALUE #( ( InventoryId = ls_existing_loot_inv-inventory_id
+                                  Amount      = ls_existing_loot_inv-amount + 1 ) )
+                REPORTED DATA(rep_loot_inv_u)
+                FAILED   DATA(fail_loot_inv_u).
+            ELSE.
+              " First time owning this loot item - create the it
+              MODIFY ENTITIES OF zi_rpg_inventory
+                ENTITY Inventory
+                  CREATE FIELDS ( AdventurerId ItemId ItemName ItemType ItemSubtype ItemRarity
+                                  Description RequiredLevel Price Amount
+                                  StrBonus DexBonus ConBonus IntBonus WisBonus ChaBonus )
+                    WITH VALUE #( ( %cid          = |LOOT_{ ls_won_item-item_id }|
+                                    AdventurerId  = quest_data-adventurer_id
+                                    ItemId        = ls_won_item-item_id
+                                    ItemName      = ls_won_item-item_name
+                                    ItemType      = ls_won_item-item_type
+                                    ItemSubtype   = ls_won_item-item_subtype
+                                    ItemRarity        = lv_rolled_rarity
+                                    Description   = ls_won_item-description
+                                    RequiredLevel = ls_won_item-required_level
+                                    Price         = ls_won_item-price
+                                    Amount        = 1
+                                    StrBonus      = ls_won_item-str_bonus
+                                    DexBonus      = ls_won_item-dex_bonus
+                                    ConBonus      = ls_won_item-con_bonus
+                                    IntBonus      = ls_won_item-int_bonus
+                                    WisBonus      = ls_won_item-wis_bonus
+                                    ChaBonus      = ls_won_item-cha_bonus ) )
+                REPORTED DATA(rep_loot_inv_c)
+                FAILED   DATA(fail_loot_inv_c).
+
+              MODIFY ENTITIES OF zi_rpg_adventurer
+                ENTITY Adventurer
+                  UPDATE FIELDS ( AdvStr AdvDex AdvCon AdvInt AdvWis AdvCha )
+                  WITH VALUE #( ( AdventurerId = quest_data-adventurer_id
+                                  AdvStr = lv_adv_stats-adv_str + ls_won_item-str_bonus
+                                  AdvDex = lv_adv_stats-adv_dex + ls_won_item-dex_bonus
+                                  AdvCon = lv_adv_stats-adv_con + ls_won_item-con_bonus
+                                  AdvInt = lv_adv_stats-adv_int + ls_won_item-int_bonus
+                                  AdvWis = lv_adv_stats-adv_wis + ls_won_item-wis_bonus
+                                  AdvCha = lv_adv_stats-adv_cha + ls_won_item-cha_bonus ) )
+                REPORTED DATA(rep_loot_stat)
+                FAILED   DATA(fail_loot_stat).
+            ENDIF.
+
+            APPEND VALUE #(
+              %tky = <key>-%tky
+              %msg = new_message_with_text(
+                       severity = if_abap_behv_message=>severity-success
+                       text     = |Loot! You received a { lv_rolled_rarity } item: '{ ls_won_item-item_name }'.| )
+            ) TO reported-Quest.
+          ENDIF.
+        ENDIF.
 
       ELSE.
         "  Failure: mark quest failed, no rewards, no XP/gold change
@@ -501,7 +603,7 @@ CLASS lhc_Quest IMPLEMENTATION.
                         %param = CORRESPONDING #( quest ) ) ).
   ENDMETHOD.
 
-METHOD previewLootOdds.
+  METHOD previewLootOdds.
 
     DATA(lo_loot) = NEW zcl_rpg_loot_amdp( ).
 

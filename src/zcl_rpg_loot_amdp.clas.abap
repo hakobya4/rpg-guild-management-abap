@@ -44,12 +44,12 @@ CLASS zcl_rpg_loot_amdp IMPLEMENTATION.
 
   METHOD get_loot_probabilities BY DATABASE PROCEDURE FOR HDB LANGUAGE SQLSCRIPT
     OPTIONS READ-ONLY
-    USING zrpg_quest_loot zrpg_marketplace.
+    USING zrpg_quest_loot zrpg_loot_items.
     et_probabilities = select 'RARITY' AS dimension,
      m.item_rarity as value,
     cast( count(*) * 100 / total.cnt as integer ) as probability_pct
    from zrpg_quest_loot as l
-   inner join zrpg_marketplace as m
+   inner join zrpg_loot_items as m
      on l.item_id = m.item_id
    cross join ( select count(*) as cnt
     from zrpg_quest_loot
@@ -63,7 +63,7 @@ CLASS zcl_rpg_loot_amdp IMPLEMENTATION.
  m.item_type AS value,
           CAST( COUNT(*) * 100 / total.cnt AS INTEGER ) AS probability_pct
      FROM zrpg_quest_loot AS l
-     INNER JOIN zrpg_marketplace AS m
+     INNER JOIN zrpg_loot_items AS m
        ON l.item_id = m.item_id
      CROSS JOIN ( SELECT COUNT(*) AS cnt
                     FROM zrpg_quest_loot
