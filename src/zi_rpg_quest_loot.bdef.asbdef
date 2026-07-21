@@ -12,7 +12,7 @@ authorization master ( global )
   field ( readonly, numbering : managed ) LootId;
   field ( readonly ) CreatedAt, CreatedBy, LastChangedAt,
   LastChangedBy, LocalLastChangedAt;
-  field ( mandatory ) QuestId, ItemId;
+  field ( mandatory ) ItemId;
 
   association _Quest;
 

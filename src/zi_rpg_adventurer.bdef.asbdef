@@ -11,7 +11,8 @@ etag master LastChangedAt
 {
   create;
   update;
-  delete;
+  // Precheck blocks deleting an adventurer you don't own
+  delete ( precheck );
 
   draft action Activate optimized;
   draft action Discard;
@@ -20,6 +21,7 @@ etag master LastChangedAt
   draft determine action Prepare
   {
     validation validateAdventurerInfo;
+    validation validateOwnership;
   }
 
 
@@ -44,6 +46,8 @@ etag master LastChangedAt
  validation validateAdventurerInfo on save { create; field AdventurerName, AdventurerClass,
       AdvStr, AdvDex, AdvCon, AdvInt, AdvWis, AdvCha; }
 
+  // Only the owning player may change an existing adventurer
+  validation validateOwnership on save { create; update; }
 
 
   mapping for zrpg_adventurer

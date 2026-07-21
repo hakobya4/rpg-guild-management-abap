@@ -1,4 +1,4 @@
-managed implementation in class ZBP_I_RPG_QUEST unique;
+managed with additional save implementation in class ZBP_I_RPG_QUEST unique;
 strict ( 2 );
 with draft;
 
@@ -44,8 +44,6 @@ etag master LastChangedAt
   validation validateQuestValues on save { create; field RequiredLevel, XpReward, GoldReward; }
   determination setInitialStatus on modify { create; }
 
-   // Auto-links every new quest to the full loot catalog so drops never require manual setup
-  determination linkAllLootItems on save { create; }
 
   mapping for zrpg_quest
     {

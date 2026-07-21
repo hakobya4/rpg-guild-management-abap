@@ -18,6 +18,9 @@ CLASS ltc_marketplace DEFINITION FOR TESTING
     METHODS buy_more_than_in_stock_fails   FOR TESTING
       RAISING
         cx_uuid_error.
+    METHODS buy_item_reduces_stock         FOR TESTING
+      RAISING
+        cx_uuid_error.
 
 ENDCLASS.
 
@@ -26,8 +29,9 @@ CLASS ltc_marketplace IMPLEMENTATION.
 
   METHOD class_setup.
     sql_environment = cl_osql_test_environment=>create(
-      i_dependency_list = VALUE #( ( 'ZRPG_MARKETPLACE' ) ( 'ZRPG_MARKET_D' ) ( 'ZRPG_ADVENTURER' ) ( 'ZRPG_DADVENTURER' )
-        ( 'ZRPG_GUILD' ) ( 'ZRPG_GUILD_D' ) ) ).
+      i_dependency_list = VALUE #( ( 'ZRPG_MARKETPLACE' ) ( 'ZRPG_MARKET_D' ) ( 'ZI_RPG_MARKETPLACE' )
+        ( 'ZRPG_ADVENTURER' ) ( 'ZRPG_DADVENTURER' )
+        ( 'ZRPG_GUILD' ) ( 'ZRPG_GUILD_D' ) ( 'ZRPG_INVENTORY' ) ) ).
   ENDMETHOD.
 
   METHOD class_teardown.
@@ -35,7 +39,7 @@ CLASS ltc_marketplace IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD teardown.
-      ROLLBACK ENTITIES.
+    ROLLBACK ENTITIES.
 
     sql_environment->clear_doubles( ).
   ENDMETHOD.
@@ -153,6 +157,47 @@ CLASS ltc_marketplace IMPLEMENTATION.
       act = failed-marketplace
       msg = 'Buying more units than are in stock must fail' ).
   ENDMETHOD.
+
+  METHOD buy_item_reduces_stock.
+    DATA(item_id)       = cl_system_uuid=>create_uuid_x16_static( ).
+    DATA(adventurer_id) = cl_system_uuid=>create_uuid_x16_static( ).
+
+    DATA mkt TYPE STANDARD TABLE OF zrpg_marketplace WITH EMPTY KEY.
+    mkt = VALUE #( ( item_id = item_id item_name = 'Potion' status = 'AVAILABLE'
+                     required_level = 1 price = 5 amount_available = 5 ) ).
+    sql_environment->insert_test_data( mkt ).
+
+    DATA mkt_views TYPE STANDARD TABLE OF zi_rpg_marketplace WITH EMPTY KEY.
+    mkt_views = VALUE #( ( ItemId = item_id ItemName = 'Potion' Status = 'AVAILABLE'
+                           RequiredLevel = 1 Price = 5 AmountAvailable = 5 ) ).
+    sql_environment->insert_test_data( mkt_views ).
+
+    DATA advs TYPE STANDARD TABLE OF zrpg_adventurer WITH EMPTY KEY.
+    advs = VALUE #( ( adventurer_id = adventurer_id adventurer_name = 'Aria'
+                      adventurer_level = 5 created_by = sy-uname ) ).
+    sql_environment->insert_test_data( advs ).
+
+    MODIFY ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
+      ENTITY Marketplace
+        EXECUTE buyItem
+          FROM VALUE #( ( ItemId              = item_id
+                          %param-AdventurerId = adventurer_id
+                          %param-Amount       = 2 ) )
+      FAILED   DATA(failed)
+      REPORTED DATA(reported).
+
+    cl_abap_unit_assert=>assert_initial(
+      act = failed-marketplace
+      msg = 'Buying an available item within the level gate must succeed' ).
+
+    READ ENTITIES OF zi_rpg_marketplace IN LOCAL MODE
+      ENTITY Marketplace ALL FIELDS WITH VALUE #( ( ItemId = item_id ) )
+      RESULT DATA(items).
+    cl_abap_unit_assert=>assert_equals(
+      act = items[ 1 ]-AmountAvailable exp = 3
+      msg = 'The purchase must reduce the stock by the bought amount' ).
+  ENDMETHOD.
+
 
 ENDCLASS.
 

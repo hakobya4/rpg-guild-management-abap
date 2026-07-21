@@ -80,6 +80,10 @@ CLASS lhc_Adventurer DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR ACTION Adventurer~quitGuild RESULT result.
     METHODS rollStats FOR MODIFY
       IMPORTING keys FOR ACTION Adventurer~rollStats RESULT result.
+    METHODS precheck_delete FOR PRECHECK
+      IMPORTING keys FOR DELETE Adventurer.
+    METHODS validateOwnership FOR VALIDATE ON SAVE
+      IMPORTING keys FOR Adventurer~validateOwnership.
 
 ENDCLASS.
 
@@ -134,6 +138,19 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         FIELDS ( AdventurerName AdventurerClass AdvStr AdvDex AdvCon AdvInt AdvWis AdvCha )
         WITH CORRESPONDING #( keys )
       RESULT DATA(adventurers).
+
+    DATA lt_name_range TYPE RANGE OF zrpg_adventurer-adventurer_name.
+    lt_name_range = VALUE #( FOR a IN adventurers
+                             WHERE ( AdventurerName IS NOT INITIAL )
+                             ( sign = 'I' option = 'EQ' low = to_upper( a-AdventurerName ) ) ).
+    IF lt_name_range IS NOT INITIAL.
+      SELECT adventurer_id, upper( adventurer_name ) AS uname
+        FROM zrpg_adventurer
+        WHERE upper( adventurer_name ) IN @lt_name_range
+        INTO TABLE @DATA(lt_existing_names).
+    ENDIF.
+
+    DATA lt_seen TYPE HASHED TABLE OF zrpg_adventurer-adventurer_name WITH UNIQUE KEY table_line.
 
     "  Check each instance
     LOOP AT adventurers ASSIGNING FIELD-SYMBOL(<adv>).
@@ -196,13 +213,19 @@ CLASS lhc_Adventurer IMPLEMENTATION.
       ENDIF.
 
       "  name must be unique
-      SELECT SINGLE adventurer_id
-        FROM zrpg_adventurer
-        WHERE upper( adventurer_name ) = @( to_upper( lv_name ) )
-          AND adventurer_id          <> @<adv>-AdventurerId
-        INTO @DATA(lv_duplicate_id).
+      DATA(lv_uname) = to_upper( lv_name ).
+      DATA(lv_duplicate) = abap_false.
+      LOOP AT lt_existing_names TRANSPORTING NO FIELDS
+        WHERE uname = lv_uname AND adventurer_id <> <adv>-AdventurerId.
+        lv_duplicate = abap_true.
+        EXIT.
+      ENDLOOP.
+      IF lv_duplicate = abap_false AND line_exists( lt_seen[ table_line = lv_uname ] ).
+        lv_duplicate = abap_true.
+      ENDIF.
+      INSERT CONV zrpg_adventurer-adventurer_name( lv_uname ) INTO TABLE lt_seen.
 
-      IF sy-subrc = 0.
+      IF lv_duplicate = abap_true.
         APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
           %tky                    = <adv>-%tky
@@ -241,7 +264,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
           %tky            = <adv>-%tky
           %msg            = new_message_with_text(
                                severity = if_abap_behv_message=>severity-error
-                               text     = 'Constitutionmust be higher than 1.' )
+                               text     = 'Constitution must be higher than 1.' )
           %element-AdvCon = if_abap_behv=>mk-on
         ) TO reported-Adventurer.
       ENDIF.
@@ -283,11 +306,52 @@ CLASS lhc_Adventurer IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD validateOwnership.
+    READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
+      ENTITY Adventurer
+        FIELDS ( CreatedBy )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(adventurers).
+
+    LOOP AT adventurers ASSIGNING FIELD-SYMBOL(<adv>).
+      IF zcl_rpg_ownership=>is_owner( <adv>-CreatedBy ) = abap_false.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky = <adv>-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-error
+                   text     = 'Only the player who created this adventurer can change it.' )
+        ) TO reported-Adventurer.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD precheck_delete.
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
+      SELECT SINGLE created_by
+        FROM zrpg_adventurer
+        WHERE adventurer_id = @<key>-AdventurerId
+        INTO @DATA(lv_created_by).
+
+      IF sy-subrc = 0 AND zcl_rpg_ownership=>is_owner( lv_created_by ) = abap_false.
+        APPEND VALUE #( %tky        = <key>-%tky
+                        %fail-cause = if_abap_behv=>cause-unauthorized
+        ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky = <key>-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-error
+                   text     = 'Only the player who created this adventurer can delete it.' )
+        ) TO reported-Adventurer.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
   METHOD acceptQuest.
     " Read adventurer data
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer
-        FIELDS ( AdventurerName AdventurerLevel )
+        FIELDS ( AdventurerName AdventurerLevel CreatedBy )
         WITH CORRESPONDING #( keys )
       RESULT DATA(adventurers).
 
@@ -311,6 +375,18 @@ CLASS lhc_Adventurer IMPLEMENTATION.
           %msg                 = new_message_with_text(
                                    severity = if_abap_behv_message=>severity-error
                                    text     = 'Save the adventurer before accepting quests.' )
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
+
+      " Only the owning player may act for this adventurer
+      IF zcl_rpg_ownership=>is_owner( <adv>-CreatedBy ) = abap_false.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky = <adv>-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-error
+                   text     = 'You can only accept quests for your own adventurer.' )
         ) TO reported-Adventurer.
         CONTINUE.
       ENDIF.
@@ -367,8 +443,9 @@ CLASS lhc_Adventurer IMPLEMENTATION.
     " Read adventurer data
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer
-        FIELDS ( AdventurerName AdventurerLevel AdventurerGold AdvStr AdvDex AdvCon AdvInt AdvWis AdvCha )
-        WITH CORRESPONDING #( keys )
+      FIELDS ( AdventurerName AdventurerLevel AdventurerGold CreatedBy
+                 AdvStr AdvDex AdvCon AdvInt AdvWis AdvCha )
+      WITH CORRESPONDING #( keys )
       RESULT DATA(adventurers).
 
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
@@ -395,6 +472,18 @@ CLASS lhc_Adventurer IMPLEMENTATION.
         CONTINUE.
       ENDIF.
 
+      " Only the owning player may act for this adventurer
+      IF zcl_rpg_ownership=>is_owner( <adv>-CreatedBy ) = abap_false.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky = <adv>-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-error
+                   text     = 'You can only buy items for your own adventurer.' )
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
+
       " Validate ItemId was provided
       DATA(lv_item_id) = <key>-%param-ItemId.
       IF lv_item_id IS INITIAL.
@@ -403,7 +492,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
           %tky = <adv>-%tky
           %msg = new_message_with_text(
                    severity = if_abap_behv_message=>severity-error
-                   text     = 'Please select am item.' )
+                   text     = 'Please select an item.' )
         ) TO reported-Adventurer.
         CONTINUE.
       ENDIF.
@@ -420,9 +509,23 @@ CLASS lhc_Adventurer IMPLEMENTATION.
          WHERE item_id = @lv_item_id
          INTO @DATA(item_data).
 
+      IF sy-subrc <> 0.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky            = <adv>-%tky
+          %action-buyItem = if_abap_behv=>mk-on
+          %msg            = new_message_with_text(
+                              severity = if_abap_behv_message=>severity-error
+                              text     = 'Item not found. Select a valid item.' )
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
+
+
       DATA(lv_total_cost) = lv_amount * item_data-price.
 
-      IF sy-subrc = 0 AND <adv>-AdventurerGold < lv_total_cost.
+      IF <adv>-AdventurerGold < lv_total_cost.
+        " gold-check failure — drop the "sy-subrc = 0 AND" entirely
         APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
           %tky            = <adv>-%tky
@@ -471,13 +574,17 @@ CLASS lhc_Adventurer IMPLEMENTATION.
       reported-Adventurer = CORRESPONDING #(
         BASE ( reported-Adventurer ) rep_gold-Adventurer ).
 
-      APPEND VALUE #(
-        %tky = <adv>-%tky
-        %msg = new_message_with_text(
-                 severity = if_abap_behv_message=>severity-success
-                 text     = |{ lv_total_cost } gold spent.|
-                         && | { <adv>-AdventurerName } now has { new_gold } gold.| )
-      ) TO reported-Adventurer.
+      IF fail_gold-Adventurer IS NOT INITIAL.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky = <adv>-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-error
+                   text     = 'The gold payment could not be applied - the purchase was cancelled.' )
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
+
       "update adventurer inventory from sale
       SELECT SINGLE inventory_id, amount
         FROM zrpg_inventory
@@ -495,6 +602,17 @@ CLASS lhc_Adventurer IMPLEMENTATION.
           REPORTED DATA(rep_inv_u)
           FAILED   DATA(fail_inv_u).
       ELSE.
+
+        IF fail_inv_u-Inventory IS NOT INITIAL.
+          APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+          APPEND VALUE #(
+            %tky = <adv>-%tky
+            %msg = new_message_with_text(
+                     severity = if_abap_behv_message=>severity-error
+                     text     = 'The item could not be added to the inventory - the purchase was cancelled.' )
+          ) TO reported-Adventurer.
+          CONTINUE.
+        ENDIF.
         " First time owning this item, create a new row
         MODIFY ENTITIES OF zi_rpg_inventory
           ENTITY Inventory
@@ -518,6 +636,17 @@ CLASS lhc_Adventurer IMPLEMENTATION.
                             ChaBonus     = item_data-cha_bonus  ) )
           REPORTED DATA(rep_inv_c)
           FAILED   DATA(fail_inv_c).
+
+        IF fail_inv_c-Inventory IS NOT INITIAL.
+          APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+          APPEND VALUE #(
+            %tky = <adv>-%tky
+            %msg = new_message_with_text(
+                     severity = if_abap_behv_message=>severity-error
+                     text     = 'The item could not be added to the inventory - the purchase was cancelled.' )
+          ) TO reported-Adventurer.
+          CONTINUE.
+        ENDIF.
       ENDIF.
       MODIFY ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
         ENTITY Adventurer
@@ -534,6 +663,25 @@ CLASS lhc_Adventurer IMPLEMENTATION.
 
       reported-Adventurer = CORRESPONDING #(
         BASE ( reported-Adventurer ) rep_stat_buy-Adventurer ).
+      IF fail_stat_buy-Adventurer IS NOT INITIAL.
+        APPEND VALUE #( %tky = <adv>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky = <adv>-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-error
+                   text     = 'The item bonuses could not be applied - the purchase was cancelled.' )
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
+
+      " Success message only after every write went through
+      APPEND VALUE #(
+        %tky = <adv>-%tky
+        %msg = new_message_with_text(
+                 severity = if_abap_behv_message=>severity-success
+                 text     = |{ lv_total_cost } gold spent.|
+                         && | { <adv>-AdventurerName } now has { new_gold } gold.| )
+      ) TO reported-Adventurer.
 
     ENDLOOP.
 
@@ -557,7 +705,7 @@ CLASS lhc_Adventurer IMPLEMENTATION.
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
 
 
-      SELECT SINGLE adventurer_name, guild_id
+      SELECT SINGLE adventurer_name, guild_id, created_by
         FROM zrpg_adventurer
         WHERE adventurer_id = @<key>-AdventurerId
         INTO @DATA(adv_data).
@@ -570,6 +718,19 @@ CLASS lhc_Adventurer IMPLEMENTATION.
           %msg              = new_message_with_text(
                                 severity = if_abap_behv_message=>severity-error
                                 text     = 'Save the adventurer before joining a guild.' )
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
+
+      " Only the owning player may act for this adventurer
+      IF zcl_rpg_ownership=>is_owner( adv_data-created_by ) = abap_false.
+        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky              = <key>-%tky
+          %action-joinGuild = if_abap_behv=>mk-on
+          %msg              = new_message_with_text(
+                                severity = if_abap_behv_message=>severity-error
+                                text     = 'You can only manage guild membership for your own adventurer.' )
         ) TO reported-Adventurer.
         CONTINUE.
       ENDIF.
@@ -638,7 +799,7 @@ text     = |{ adv_data-adventurer_name } is already a member of { guild_data-gui
   METHOD quitGuild.
     READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
       ENTITY Adventurer
-        FIELDS ( GuildId )
+        FIELDS ( GuildId CreatedBy )
         WITH CORRESPONDING #( keys )
       RESULT DATA(adventurers).
 
@@ -662,6 +823,19 @@ text     = |{ adv_data-adventurer_name } is already a member of { guild_data-gui
         ) TO reported-Adventurer.
         CONTINUE.
       ENDIF.
+
+      IF zcl_rpg_ownership=>is_owner( <adv>-CreatedBy ) = abap_false.
+        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky              = <key>-%tky
+          %action-quitGuild = if_abap_behv=>mk-on
+          %msg              = new_message_with_text(
+                                severity = if_abap_behv_message=>severity-error
+                                text     = 'You can only manage guild membership for your own adventurer.' )
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
+
       IF <adv>-GuildId = VALUE sysuuid_x16( ).
         APPEND VALUE #( %tky = <key>-%tky ) TO failed-Adventurer.
         APPEND VALUE #(
@@ -697,11 +871,31 @@ text     = |{ adv_data-adventurer_name } is already a member of { guild_data-gui
   ENDMETHOD.
 
   METHOD rollStats.
-
+        READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
+      ENTITY Adventurer
+        FIELDS ( CreatedBy )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(adventurers).
 
     DATA updates TYPE TABLE FOR UPDATE zi_rpg_adventurer\\Adventurer.
 
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
+
+    " Only the owning player may act for this adventurer
+      READ TABLE adventurers ASSIGNING FIELD-SYMBOL(<owner_check>)
+        WITH KEY %tky = <key>-%tky.
+      IF sy-subrc = 0 AND zcl_rpg_ownership=>is_owner( <owner_check>-CreatedBy ) = abap_false.
+        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Adventurer.
+        APPEND VALUE #(
+          %tky              = <key>-%tky
+          %action-rollStats = if_abap_behv=>mk-on
+          %msg              = new_message_with_text(
+                                severity = if_abap_behv_message=>severity-error
+                                text     = 'You can only roll stats for your own adventurer.' )
+        ) TO reported-Adventurer.
+        CONTINUE.
+      ENDIF.
+
       DATA lo_roller TYPE REF TO zif_rpg_dice_roller.
       lo_roller = NEW zcl_rpg_roll_dice( ).
 
@@ -738,5 +932,6 @@ text     = |{ adv_data-adventurer_name } is already a member of { guild_data-gui
 
     ENDLOOP.
   ENDMETHOD.
+
 
 ENDCLASS.

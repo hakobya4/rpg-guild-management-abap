@@ -16,10 +16,6 @@ CLASS zcl_rpg_loot_amdp DEFINITION
            END OF ty_loot_probability,
            tt_loot_probability TYPE STANDARD TABLE OF ty_loot_probability WITH EMPTY KEY.
 
-    METHODS get_item_count
-      AMDP OPTIONS CDS SESSION CLIENT DEPENDENT READ-ONLY
-      EXPORTING VALUE(rv_count) TYPE i.
-
     METHODS get_loot_probabilities
       AMDP OPTIONS CDS SESSION CLIENT DEPENDENT READ-ONLY
       IMPORTING VALUE(iv_quest_id)      TYPE ty_quest_id_hex
@@ -33,43 +29,43 @@ ENDCLASS.
 
 CLASS zcl_rpg_loot_amdp IMPLEMENTATION.
 
-  METHOD get_item_count BY DATABASE PROCEDURE FOR HDB LANGUAGE SQLSCRIPT
-    OPTIONS READ-ONLY
-    USING zrpg_inventory.
-
-    SELECT COUNT(*) INTO rv_count FROM zrpg_inventory;
-
-  ENDMETHOD.
-
-
   METHOD get_loot_probabilities BY DATABASE PROCEDURE FOR HDB LANGUAGE SQLSCRIPT
     OPTIONS READ-ONLY
     USING zrpg_quest_loot zrpg_loot_items.
-    et_probabilities = select 'RARITY' AS dimension,
-     m.item_rarity as value,
-    cast( count(*) * 100 / total.cnt as integer ) as probability_pct
-   from zrpg_quest_loot as l
-   inner join zrpg_loot_items as m
-     on l.item_id = m.item_id
-   cross join ( select count(*) as cnt
-    from zrpg_quest_loot
-    where quest_id = :iv_quest_id ) as total
-   where l.quest_id = :iv_quest_id
-   GROUP BY m.item_rarity, total.cnt
+    et_probabilities =
+      select 'DROP_CHANCE' as dimension, 'ANY_LOOT' as value,
+             30 as probability_pct
+                from dummy
+*    DUMMY is  one-row table, so this always yields exactly one constant row (LIMIT is not allowed before UNION).
+    union all
+    select 'RARITY' as dimension,
+           m.item_rarity as value,
+           case m.item_rarity
+             when 'COMMON'    then 60
+             when 'UNCOMMON'  then 25
+             when 'RARE'      then 10
+             when 'LEGENDARY' then 5
+             else 0
+           end as probability_pct
+      from zrpg_quest_loot as l
+      inner join zrpg_loot_items as m
+        on l.item_id = m.item_id
+     where l.quest_id = :iv_quest_id
+     group by m.item_rarity
 
- union all
+    union all
 
- select 'ITEM_TYPE' as dimension,
- m.item_type AS value,
-          CAST( COUNT(*) * 100 / total.cnt AS INTEGER ) AS probability_pct
-     FROM zrpg_quest_loot AS l
-     INNER JOIN zrpg_loot_items AS m
-       ON l.item_id = m.item_id
-     CROSS JOIN ( SELECT COUNT(*) AS cnt
-                    FROM zrpg_quest_loot
-                   WHERE quest_id = :iv_quest_id ) AS total
-    WHERE l.quest_id = :iv_quest_id
-    GROUP BY m.item_type, total.cnt;
+    select 'ITEM_TYPE' as dimension,
+           m.item_type as value,
+           cast( count(*) * 100 / total.cnt as integer ) as probability_pct
+      from zrpg_quest_loot as l
+      inner join zrpg_loot_items as m
+        on l.item_id = m.item_id
+      cross join ( select count(*) as cnt
+                     from zrpg_quest_loot
+                    where quest_id = :iv_quest_id ) as total
+     where l.quest_id = :iv_quest_id
+     group by m.item_type, total.cnt;
 
   ENDMETHOD.
 

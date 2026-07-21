@@ -46,5 +46,16 @@ CLASS zcl_rpg_roll_dice IMPLEMENTATION.
                  max  = 100 )->get_next( ).
   ENDMETHOD.
 
+   METHOD zif_rpg_dice_roller~roll_between.
+    IF iv_max <= iv_min.
+      rv_roll = iv_min.
+      RETURN.
+    ENDIF.
+    rv_roll = cl_abap_random_int=>create(
+                 seed = cl_abap_random=>seed( )
+                 min  = iv_min
+                 max  = iv_max )->get_next( ).
+  ENDMETHOD.
+
 ENDCLASS.
 

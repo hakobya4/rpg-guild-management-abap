@@ -6,6 +6,13 @@ CLASS lhc_Inventory DEFINITION INHERITING FROM cl_abap_behavior_handler.
     METHODS sellItem FOR MODIFY
       IMPORTING keys FOR ACTION Inventory~sellItem.
 
+    " Only the owning player may change an inventory row
+    METHODS validateOwnership FOR VALIDATE ON SAVE
+      IMPORTING keys FOR Inventory~validateOwnership.
+    " Only the owning player may delete an inventory row
+    METHODS precheck_delete FOR PRECHECK
+      IMPORTING keys FOR DELETE Inventory.
+
 ENDCLASS.
 
 CLASS lhc_Inventory IMPLEMENTATION.
@@ -13,19 +20,60 @@ CLASS lhc_Inventory IMPLEMENTATION.
   METHOD get_global_authorizations.
   ENDMETHOD.
 
-METHOD sellItem.
+  METHOD validateOwnership.
+    READ ENTITIES OF zi_rpg_inventory IN LOCAL MODE
+      ENTITY Inventory
+        FIELDS ( CreatedBy )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(items).
+
+    LOOP AT items ASSIGNING FIELD-SYMBOL(<item>).
+      IF zcl_rpg_ownership=>is_owner( <item>-CreatedBy ) = abap_false.
+        APPEND VALUE #( %tky = <item>-%tky ) TO failed-Inventory.
+        APPEND VALUE #(
+          %tky = <item>-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-error
+                   text     = 'Only the owning player can change this inventory item.' )
+        ) TO reported-Inventory.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD precheck_delete.
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
+      SELECT SINGLE created_by
+        FROM zrpg_inventory
+        WHERE inventory_id = @<key>-InventoryId
+        INTO @DATA(lv_created_by).
+
+      IF sy-subrc = 0 AND zcl_rpg_ownership=>is_owner( lv_created_by ) = abap_false.
+        APPEND VALUE #( %tky        = <key>-%tky
+                        %fail-cause = if_abap_behv=>cause-unauthorized
+        ) TO failed-Inventory.
+        APPEND VALUE #(
+          %tky = <key>-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-error
+                   text     = 'Only the owning player can delete this inventory item.' )
+        ) TO reported-Inventory.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD sellItem.
 
 
     DATA inv_updates TYPE TABLE FOR UPDATE zi_rpg_inventory\\Inventory.
     DATA inv_deletes TYPE TABLE FOR DELETE zi_rpg_inventory\\Inventory.
 
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
-            SELECT SINGLE item_id, item_name, item_type, item_subtype, item_rarity, description,
-                    required_level, adventurerid, price, amount,
-                    str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus
-          FROM zrpg_inventory
-        WHERE inventory_id = @<key>-InventoryId
-        INTO @DATA(item_data).
+      SELECT SINGLE item_id, item_name, item_type, item_subtype, item_rarity, description,
+              required_level, adventurerid, price, amount, created_by,
+              str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus
+    FROM zrpg_inventory
+  WHERE inventory_id = @<key>-InventoryId
+  INTO @DATA(item_data).
 
       IF sy-subrc <> 0.
         APPEND VALUE #( %tky = <key>-%tky ) TO failed-Inventory.
@@ -35,6 +83,19 @@ METHOD sellItem.
           %msg             = new_message_with_text(
                                severity = if_abap_behv_message=>severity-error
                                text     = 'Inventory item not found.' )
+        ) TO reported-Inventory.
+        CONTINUE.
+      ENDIF.
+
+      " Only the owning player may sell this item
+      IF zcl_rpg_ownership=>is_owner( item_data-created_by ) = abap_false.
+        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Inventory.
+        APPEND VALUE #(
+          %tky             = <key>-%tky
+          %action-sellItem = if_abap_behv=>mk-on
+          %msg             = new_message_with_text(
+                               severity = if_abap_behv_message=>severity-error
+                               text     = 'You can only sell items from your own inventory.' )
         ) TO reported-Inventory.
         CONTINUE.
       ENDIF.
@@ -59,7 +120,7 @@ METHOD sellItem.
 
       DATA(lv_refund) = lv_sell * item_data-price.
 
-      " ── 1) Refund gold to the owning adventurer (cross-BO) ──
+      "  Refund gold to the owning adventurer
       SELECT SINGLE adventurer_gold, adv_str, adv_dex, adv_con, adv_int, adv_wis, adv_cha
         FROM zrpg_adventurer
         WHERE adventurer_id = @item_data-adventurerid
@@ -79,6 +140,18 @@ METHOD sellItem.
                             AdvCha = lv_adv-adv_cha - item_data-cha_bonus ) )
           REPORTED DATA(rep_adv)
           FAILED   DATA(fail_adv).
+
+        IF fail_adv-Adventurer IS NOT INITIAL.
+          APPEND VALUE #( %tky = <key>-%tky ) TO failed-Inventory.
+          APPEND VALUE #(
+            %tky             = <key>-%tky
+            %action-sellItem = if_abap_behv=>mk-on
+            %msg             = new_message_with_text(
+                                 severity = if_abap_behv_message=>severity-error
+                                 text     = 'The gold refund could not be applied - the sale was cancelled.' )
+          ) TO reported-Inventory.
+          CONTINUE.
+        ENDIF.
       ENDIF.
 
       SELECT SINGLE item_id
@@ -101,9 +174,20 @@ METHOD sellItem.
                             %param-Amount = lv_sell ) )
           REPORTED DATA(rep_mkt)
           FAILED   DATA(fail_mkt).
+
+        IF fail_mkt-Marketplace IS NOT INITIAL.
+          APPEND VALUE #( %tky = <key>-%tky ) TO failed-Inventory.
+          APPEND VALUE #(
+            %tky             = <key>-%tky
+            %action-sellItem = if_abap_behv=>mk-on
+            %msg             = new_message_with_text(
+                                 severity = if_abap_behv_message=>severity-error
+                                 text     = 'The item could not be returned to the marketplace - the sale was cancelled.' )
+          ) TO reported-Inventory.
+          CONTINUE.
+        ENDIF.
       ELSE.
         " First time this loot item is sold - list it on the marketplace
-        " using its own item data, so it becomes purchasable by others.
         MODIFY ENTITIES OF zi_rpg_marketplace
           ENTITY Marketplace
             CREATE FIELDS ( ItemName ItemType ItemSubtype ItemRarity Description RequiredLevel
@@ -126,10 +210,22 @@ METHOD sellItem.
                               AmountAvailable = lv_sell ) )
           REPORTED DATA(rep_mkt_c)
           FAILED   DATA(fail_mkt_c).
+
+        IF fail_mkt_c-Marketplace IS NOT INITIAL.
+          APPEND VALUE #( %tky = <key>-%tky ) TO failed-Inventory.
+          APPEND VALUE #(
+            %tky             = <key>-%tky
+            %action-sellItem = if_abap_behv=>mk-on
+            %msg             = new_message_with_text(
+                                 severity = if_abap_behv_message=>severity-error
+                                 text     = 'The item could not be listed on the marketplace - the sale was cancelled.' )
+          ) TO reported-Inventory.
+          CONTINUE.
+        ENDIF.
       ENDIF.
 
 
-      " ── 3) Reduce or remove the inventory stack (own BO, local mode) ──
+      " Reduce or remove the inventory
       IF lv_sell = item_data-amount.
         APPEND VALUE #( %tky = <key>-%tky ) TO inv_deletes.
       ELSE.

@@ -9,14 +9,15 @@ etag master LastChangedAt
 {
   create;
   update;
-  delete;
+  // Precheck blocks deleting inventory rows you don't own
+  delete ( precheck );
 
   field ( readonly, numbering : managed ) InventoryId;
   field ( readonly ) CreatedAt, CreatedBy, LastChangedAt,
   LastChangedBy, LocalLastChangedAt;
 
   action sellItem parameter ZI_RPG_SELL_PARAM;
-
+  validation validateOwnership on save { create; update; }
 
   mapping for zrpg_inventory
     {

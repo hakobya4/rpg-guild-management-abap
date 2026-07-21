@@ -1,15 +1,5 @@
-class ZBP_I_RPG_QUEST_LOOT definition
-  public
-  abstract
-  final
-  create public .
-
-public section.
-protected section.
-private section.
+CLASS zbp_i_rpg_quest_loot DEFINITION PUBLIC ABSTRACT FINAL FOR BEHAVIOR OF zi_rpg_quest_loot.
 ENDCLASS.
 
-
-
-CLASS ZBP_I_RPG_QUEST_LOOT IMPLEMENTATION.
+CLASS zbp_i_rpg_quest_loot IMPLEMENTATION.
 ENDCLASS.
