@@ -38,7 +38,7 @@ etag master LastChangedAt
   action ( features : instance ) giveupQuest result [1] $self;
 
   // Shows the drop rate for this quest's loot
-  action previewLootOdds result [1] $self;
+  action previewLootOdds result [0..*] ZI_RPG_LOOT_ODDS;
 
 
   validation validateQuestValues on save { create; field RequiredLevel, XpReward, GoldReward; }

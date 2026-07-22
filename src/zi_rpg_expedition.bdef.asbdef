@@ -1,0 +1,83 @@
+unmanaged implementation in class ZBP_I_RPG_EXPEDITION unique;
+strict ( 2 );
+with draft;
+
+
+define behavior for ZI_RPG_EXPEDITION alias Expedition
+draft table zrpg_exped_d
+lock master total etag LastChangedAt
+authorization master ( global )
+etag master LastChangedAt
+early numbering
+{
+  create;
+  update;
+  delete;
+  draft action Activate optimized;
+  draft action Discard;
+  draft action Edit;
+  draft action Resume;
+  draft determine action Prepare
+  {
+    validation validateQuest;
+
+  }
+  association _Member { create; with draft; }
+  field ( readonly ) ExpeditionId, Status, RequiredStat, RequiredLevel,
+                     DifficultyClass, XpReward, Successes,
+                     CreatedAt, CreatedBy, LastChangedAt, LastChangedBy, LocalLastChangedAt;
+  field ( mandatory ) ExpeditionName, QuestId;
+  // Rolls every party member's check against the quest DC; majority wins
+  action resolveExpedition result [1] $self;
+  validation validateQuest on save { create; field QuestId; }
+  determination setInitialStatus on modify { create; }
+  // Copies required stat / level / DC / XP reward from the chosen quest
+  determination deriveQuestReqs on modify { field QuestId; }
+  mapping for zrpg_expedition
+    {
+      ExpeditionId       = expedition_id;
+      ExpeditionName     = expedition_name;
+      QuestId            = quest_id;
+      Status             = status;
+      RequiredStat       = required_stat;
+      RequiredLevel      = required_level;
+      DifficultyClass    = difficulty_class;
+      XpReward           = xp_reward;
+      Successes          = successes;
+      CreatedAt          = created_at;
+      CreatedBy          = created_by;
+      LastChangedAt      = last_changed_at;
+      LastChangedBy      = last_changed_by;
+      LocalLastChangedAt = local_last_changed_at;
+    }
+}
+define behavior for ZI_RPG_EXP_MEMBERS alias Member
+draft table zrpg_exp_mem_d
+lock dependent by _Expedition
+authorization dependent by _Expedition
+etag dependent by _Expedition
+early numbering
+{
+  delete;
+  update;
+
+
+  field ( readonly ) MemberId, ExpeditionId, MemberRoll, MemberTotal,
+                     MemberPassed, XpGained, LocalLastChangedAt;
+  field ( mandatory : create ) AdventurerId;
+
+  // Party rules: size 1-4, no duplicate adventurer, level requirement met
+  validation validateMember on save { create; }
+  association _Expedition { with draft; }
+  mapping for zrpg_exp_members
+    {
+      MemberId           = member_id;
+      ExpeditionId       = expedition_id;
+      AdventurerId       = adventurer_id;
+      MemberRoll         = member_roll;
+      MemberTotal        = member_total;
+      MemberPassed       = member_passed;
+      XpGained           = xp_gained;
+      LocalLastChangedAt = local_last_changed_at;
+    }
+}

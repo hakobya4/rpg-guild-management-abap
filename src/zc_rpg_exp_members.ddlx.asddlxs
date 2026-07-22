@@ -1,0 +1,33 @@
+@Metadata.layer: #CORE
+@UI.headerInfo:{
+    typeName:       'Party Member',
+    typeNamePlural: 'Party Members'
+}
+annotate view ZC_RPG_EXP_MEMBERS with
+{
+  @Consumption.valueHelpDefinition: [{
+    entity: {
+      name:    'ZC_RPG_ADVENTURER',
+      element: 'AdventurerId'
+    },
+    additionalBinding: [{
+      usage:        #RESULT
+    }],
+    useForValidation: true
+  }]
+  @UI.lineItem:       [{ position: 10, label: 'Adventurer' }]
+  @UI.identification: [{ position: 10, label: 'Adventurer' }]
+  AdventurerId;
+  @UI.lineItem:       [{ position: 20, label: 'Roll' }]
+  @UI.identification: [{ position: 20 }]
+  MemberRoll;
+  @UI.lineItem:       [{ position: 30, label: 'Total' }]
+  @UI.identification: [{ position: 30 }]
+  MemberTotal;
+  @UI.lineItem:       [{ position: 40, label: 'Passed' }]
+  @UI.identification: [{ position: 40 }]
+  MemberPassed;
+  @UI.lineItem:       [{ position: 50, label: 'XP Gained' }]
+  @UI.identification: [{ position: 50 }]
+  XpGained;
+}

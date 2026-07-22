@@ -1,0 +1,5 @@
+CLASS zbp_i_rpg_expedition DEFINITION PUBLIC ABSTRACT FINAL FOR BEHAVIOR OF zi_rpg_expedition.
+ENDCLASS.
+
+CLASS zbp_i_rpg_expedition IMPLEMENTATION.
+ENDCLASS.

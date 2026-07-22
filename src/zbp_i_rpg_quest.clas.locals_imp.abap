@@ -12,7 +12,7 @@ ENDCLASS.
 
 
 CLASS lsc_zi_rpg_quest IMPLEMENTATION.
-  " Auto-links full loot catalog to quests, so
+  " Auto-links full loot catalog to quests
   METHOD save_modified.
 
     CHECK create-quest IS NOT INITIAL.
@@ -735,9 +735,8 @@ CLASS lhc_Quest IMPLEMENTATION.
           %tky = <key>-%tky
           %msg = new_message_with_text(
                    severity = if_abap_behv_message=>severity-success
-text     = lv_text )
+                   text     = lv_text )
         ) TO reported-Quest.
-
       ENDLOOP.
     ENDLOOP.
 
@@ -751,7 +750,6 @@ text     = lv_text )
                         %param = CORRESPONDING #( quest ) ) ).
 
   ENDMETHOD.
-
   METHOD resolve_check.
 
     rs_check-modifier = NEW zcl_rpg_stat_check( )->zif_rpg_quest_resolution~get_check_modifier(

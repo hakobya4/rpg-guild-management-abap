@@ -1,0 +1,85 @@
+@Metadata.layer: #CORE
+
+@UI.headerInfo:{
+    typeName:       'Expedition',
+    typeNamePlural: 'Expeditions',
+    title:{ type: #STANDARD, value: 'ExpeditionName' },
+    description:{ type: #STANDARD, value: 'Status' }
+}
+
+annotate view ZC_RPG_EXPEDITION with
+{
+  @UI.facet: [
+    {
+      id: 'ExpeditionDetails', purpose: #STANDARD,
+      type: #FIELDGROUP_REFERENCE, label: 'Expedition',
+      position: 10, targetQualifier: 'ExpeditionDetails'
+    },
+    {
+      id: 'QuestReqs', purpose: #STANDARD,
+      type: #FIELDGROUP_REFERENCE, label: 'Quest Requirements',
+      position: 20, targetQualifier: 'QuestReqs'
+    },
+    {
+      id: 'Party', purpose: #STANDARD,
+      type: #LINEITEM_REFERENCE, label: 'Party',
+      position: 30, targetElement: '_Member'
+    }
+  ]
+
+  @UI.lineItem:       [{ position: 10, label: 'Expedition' }]
+  @UI.selectionField: [{ position: 10 }]
+  @UI.identification: [{ position: 10 }]
+  @UI.fieldGroup:     [{ qualifier: 'ExpeditionDetails', position: 10, label: 'Name' }]
+  ExpeditionName;
+
+  @Consumption.valueHelpDefinition: [{
+    entity: {
+      name:    'ZC_RPG_QUEST',
+      element: 'QuestId'
+    },
+    additionalBinding: [{
+      usage:        #RESULT
+    }],
+    useForValidation: true
+  }]
+  @UI.lineItem:       [{ position: 20, label: 'Quest' }]
+  @UI.identification: [{ position: 20, label: 'Quest' }]
+  @UI.fieldGroup:     [{ qualifier: 'ExpeditionDetails', position: 20, label: 'Quest' }]
+  QuestId;
+
+  @UI.lineItem:       [{ position: 30, label: 'Status' }]
+  @UI.selectionField: [{ position: 20 }]
+  @UI.identification: [{ position: 30 }]
+  @UI.fieldGroup:     [{ qualifier: 'ExpeditionDetails', position: 30, label: 'Status' }]
+  Status;
+
+  @UI.lineItem:       [{ position: 40, label: 'Successes' }]
+  @UI.identification: [{ position: 40 }]
+  @UI.fieldGroup:     [{ qualifier: 'ExpeditionDetails', position: 40, label: 'Successful Checks' }]
+  Successes;
+
+  @UI.fieldGroup:     [{ qualifier: 'QuestReqs', position: 10, label: 'Required Stat' }]
+  RequiredStat;
+
+  @UI.fieldGroup:     [{ qualifier: 'QuestReqs', position: 20, label: 'Required Level' }]
+  RequiredLevel;
+
+  @UI.fieldGroup:     [{ qualifier: 'QuestReqs', position: 30, label: 'Difficulty Class' }]
+  DifficultyClass;
+
+  @UI.fieldGroup:     [{ qualifier: 'QuestReqs', position: 40, label: 'XP Reward' }]
+  XpReward;
+
+  @UI.lineItem: [{ type:       #FOR_ACTION,
+                   dataAction: 'resolveExpedition',
+                   label:      'Resolve',
+                   inline:     true }]
+  @UI.identification: [{
+    position:   50,
+    label:      'Resolve Expedition',
+    type:       #FOR_ACTION,
+    dataAction: 'resolveExpedition'
+  }]
+  ExpeditionId;
+}

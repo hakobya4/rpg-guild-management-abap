@@ -12,4 +12,6 @@ define service ZRPG_GUILD_SD {
   expose ZC_RPG_LOOT_ITEMS   as LootItem;
   expose ZI_RPG_LOOT_ITEM_VH as LootItemVH;
   expose ZC_RPG_QUEST_LOOT   as QuestLoot;
+  expose ZC_RPG_EXPEDITION   as Expedition;
+  expose ZC_RPG_EXP_MEMBERS  as ExpeditionMember;
 }

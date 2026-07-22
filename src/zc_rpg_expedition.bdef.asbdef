@@ -1,0 +1,27 @@
+projection;
+strict ( 2 );
+use draft;
+
+define behavior for ZC_RPG_EXPEDITION alias Expedition
+{
+  use create;
+  use update;
+  use delete;
+
+  use action Activate;
+  use action Discard;
+  use action Edit;
+  use action Resume;
+  use action Prepare;
+
+  use action resolveExpedition;
+
+  use association _Member { create; with draft; }
+}
+
+define behavior for ZC_RPG_EXP_MEMBERS alias Member
+{
+  use delete;
+
+  use association _Expedition { with draft; }
+}
