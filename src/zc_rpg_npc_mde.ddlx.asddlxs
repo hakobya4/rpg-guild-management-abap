@@ -1,0 +1,44 @@
+@Metadata.layer: #CORE
+@UI.headerInfo:{
+    typeName:       'NPC',
+    typeNamePlural: 'NPCs',
+    title:{ type: #STANDARD, value: 'NpcName' },
+    description:{ type: #STANDARD, value: 'NpcRole' }
+}
+annotate entity ZC_RPG_NPC with
+{
+
+  @UI.facet: [
+    {
+      id: 'NpcDetails', purpose: #STANDARD,
+      type: #FIELDGROUP_REFERENCE, label: 'NPC Details',
+      position: 10, targetQualifier: 'NpcDetails'
+    }
+  ]
+  @UI.lineItem:       [{ position: 10, label: 'Name' }]
+  @UI.selectionField: [{ position: 10 }]
+  @UI.fieldGroup:     [{ qualifier: 'NpcDetails', position: 10, label: 'Name' }]
+  NpcName;
+  @UI.lineItem:       [{ position: 20, label: 'Race' }]
+  @UI.selectionField: [{ position: 20 }]
+  @UI.identification: [{ position: 20 }]
+  @UI.fieldGroup:     [{ qualifier: 'NpcDetails', position: 20, label: 'Race' }]
+  NpcRace;
+  @UI.lineItem:       [{ position: 30, label: 'Role' }]
+  @UI.selectionField: [{ position: 30 }]
+  @UI.identification: [{ position: 30 }]
+  @UI.fieldGroup:     [{ qualifier: 'NpcDetails', position: 30, label: 'Role' }]
+  NpcRole;
+  @UI.lineItem:       [{ position: 30, label: 'Flavor Text' }]
+  @UI.identification: [{ position: 30 }]
+  @UI.fieldGroup:     [{ qualifier: 'NpcDetails', position: 30, label: 'Flavor Text' }]
+  FlavorText;
+
+  @UI.identification: [{
+   position:   10,
+   label:      'Generate NPC',
+   type:       #FOR_ACTION,
+   dataAction: 'generateNPC'
+  }]
+  NpcId;
+}

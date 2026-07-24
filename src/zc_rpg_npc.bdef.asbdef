@@ -1,0 +1,12 @@
+projection;
+strict ( 2 );
+
+define behavior for ZC_RPG_NPC alias Npc
+{
+  use create;
+  use update;
+  use delete;
+  use action generateNPC;
+
+
+}

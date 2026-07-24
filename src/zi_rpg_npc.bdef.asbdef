@@ -1,0 +1,35 @@
+managed implementation in class ZBP_I_RPG_NPC unique;
+strict ( 2 );
+
+define behavior for ZI_RPG_NPC alias Npc
+persistent table zrpg_npc
+lock master
+authorization master ( global )
+etag master LastChangedAt
+{
+  create;
+  update;
+  delete;
+
+
+  field ( readonly, numbering : managed ) NpcId;
+  field ( readonly ) CreatedAt, CreatedBy, LastChangedAt,
+  LastChangedBy, LocalLastChangedAt;
+  field ( readonly ) FlavorText;
+  field ( mandatory ) NpcName, NpcRole, NpcRace;
+  // Calls the LLM via HTTP client to generate NPC.
+  action  generateNPC parameter ZI_RPG_NPC_ROLE_PARAM result [1] $self;
+  mapping for zrpg_npc
+    {
+      NpcId              = npc_id;
+      NpcName            = npc_name;
+      NpcRace            = npc_race;
+      NpcRole            = npc_role;
+      FlavorText         = flavor_text;
+      CreatedAt          = created_at;
+      CreatedBy          = created_by;
+      LastChangedAt      = last_changed_at;
+      LastChangedBy      = last_changed_by;
+      LocalLastChangedAt = local_last_changed_at;
+    }
+}
