@@ -11,12 +11,12 @@ define root view entity ZI_RPG_ADVENTURER
 
   association [0..*] to ZI_RPG_GUILD as _Guild on _Guild.GuildName <> ''
   association [0..1] to ZI_RPG_GUILD as _myGuild        on $projection.GuildId = _myGuild.GuildId
-  association [0..*] to ZI_RPG_QUEST as _Quest          on $projection.AdventurerId = _Quest.AdventurerId
+  association [0..*] to ZI_RPG_QUEST as _Quest          on $projection.AdventurerId = _Quest.AdventurerId and _Quest.QuestTypeName <> 'NPC'
   association [0..*] to ZI_RPG_NPC as _NPC  on _NPC.NpcName <> ''
   
 
   //  " All OPEN quests available to take
-  association [0..*] to ZI_RPG_QUEST as _AvailableQuest on _AvailableQuest.Status = 'OPEN'
+  association [0..*] to ZI_RPG_QUEST as _AvailableQuest on _AvailableQuest.Status = 'OPEN' and _AvailableQuest.QuestTypeName <> 'NPC'
   association [0..*] to ZI_RPG_MARKETPLACE as _Marketplace on _Marketplace.Status = 'AVAILABLE'
   association [0..*] to ZI_RPG_INVENTORY as _Inventory on $projection.AdventurerId = _Inventory.Adventurerid
   {

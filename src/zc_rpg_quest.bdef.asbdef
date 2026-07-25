@@ -20,5 +20,7 @@ define behavior for ZC_RPG_QUEST alias Quest
   {
     action completeQuest affects entity _Adventurer;
     action giveupQuest affects entity _Adventurer;
+    field QuestTypeName affects field NpcId;
+
   }
 }

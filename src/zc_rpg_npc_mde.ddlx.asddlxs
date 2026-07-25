@@ -13,6 +13,11 @@ annotate entity ZC_RPG_NPC with
       id: 'NpcDetails', purpose: #STANDARD,
       type: #FIELDGROUP_REFERENCE, label: 'NPC Details',
       position: 10, targetQualifier: 'NpcDetails'
+    },
+    {
+      id: 'NpcQuests', purpose: #STANDARD,
+      type: #LINEITEM_REFERENCE, label: 'Quests Given',
+      position: 20, targetElement: '_Quest'
     }
   ]
   @UI.lineItem:       [{ position: 10, label: 'Name' },

@@ -6,9 +6,14 @@
 "ZI_RPG_NPC"
 ],
 "ASSOCIATED":
-[],
+[
+"ZC_RPG_QUEST",
+"ZI_RPG_QUEST"
+],
 "BASE":
-[],
+[
+"ZI_RPG_NPC"
+],
 "ANNO_REF":
 [],
 "SCALAR_FUNCTION":

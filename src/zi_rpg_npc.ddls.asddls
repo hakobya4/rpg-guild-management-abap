@@ -4,8 +4,7 @@
 @Metadata.ignorePropagatedAnnotations: true
 define root view entity ZI_RPG_NPC
   as select from zrpg_npc
-  association [0..*] to ZI_RPG_QUEST as _Quest on _Quest.QuestTypeName = 'NPC'
-{
+association [0..*] to ZI_RPG_QUEST as _Quest on _Quest.npcid = $projection.NpcId{
   key npc_id                as NpcId,
       npc_name              as NpcName,
       npc_race              as NpcRace,

@@ -14,5 +14,7 @@ define root view entity ZC_RPG_NPC
       CreatedBy,
       LastChangedAt,
       LastChangedBy,
-      LocalLastChangedAt
+      LocalLastChangedAt,
+      
+      _Quest : redirected to ZC_RPG_QUEST
 }

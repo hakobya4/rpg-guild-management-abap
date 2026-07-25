@@ -179,7 +179,7 @@ CLASS lhc_Quest IMPLEMENTATION.
 
   METHOD get_instance_features.
     READ ENTITIES OF zi_rpg_quest IN LOCAL MODE
-      ENTITY Quest FIELDS ( Status ) WITH CORRESPONDING #( keys )
+      ENTITY Quest FIELDS ( Status QuestTypeName ) WITH CORRESPONDING #( keys )
       RESULT DATA(quests).
 
     result = VALUE #( FOR <q> IN quests
@@ -189,7 +189,7 @@ CLASS lhc_Quest IMPLEMENTATION.
                                         ELSE if_abap_behv=>fc-o-disabled )
         %action-giveupQuest = COND #( WHEN <q>-Status = c_status_in_progress
                                       THEN if_abap_behv=>fc-o-enabled
-                                      ELSE if_abap_behv=>fc-o-disabled ) ) ).
+                                       ELSE if_abap_behv=>fc-o-disabled ) ) ).
   ENDMETHOD.
 
 
@@ -527,14 +527,6 @@ CLASS lhc_Quest IMPLEMENTATION.
 
 
     LOOP AT quests ASSIGNING FIELD-SYMBOL(<quest>).
-        DATA(lv_quest_type) = <quest>-QuestTypeName.
-        DATA(lv_is_hidden) = abap_true.
-        CASE lv_quest_type.
-         WHEN 'NPC'.
-          lv_is_hidden = abap_true.
-         WHEN OTHERS.
-          lv_is_hidden = abap_true.
-         ENDCASE.
 
       IF <quest>-QuestName IS INITIAL.
         APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
