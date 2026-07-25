@@ -61,6 +61,11 @@ annotate view ZC_RPG_ADVENTURER with
     id: 'Marektplace', purpose: #STANDARD,
     type: #LINEITEM_REFERENCE, label: 'Marketplace',
     position: 90, targetElement: '_Marketplace'
+  },
+  {
+  id: 'NPCs', purpose: #STANDARD,
+  type: #LINEITEM_REFERENCE, label: 'NPCs',
+  position: 100, targetElement: '_NPC', targetQualifier: 'Embedded'
   }
   ]
   @UI.lineItem:       [{ position: 10, label: 'Name' }]

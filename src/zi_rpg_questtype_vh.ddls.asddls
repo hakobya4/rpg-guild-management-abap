@@ -15,7 +15,13 @@ define view entity ZI_RPG_QUESTTYPE_VH
 union select from I_Language
 {
   key cast( 'EXPLORATION'  as abap.char(20) ) as QuestTypeName,
-      cast( 'exploration'  as abap.char(30) ) as QuestTypeNames
+      cast( 'Exploration'  as abap.char(30) ) as QuestTypeNames
+}
+
+union select from I_Language
+{
+  key cast( 'NPC'  as abap.char(20) ) as QuestTypeName,
+      cast( 'NPC'  as abap.char(30) ) as QuestTypeNames
 }
 
 union select from I_Language

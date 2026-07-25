@@ -19,6 +19,7 @@ CLASS zcl_rpg_loot_amdp DEFINITION
     METHODS get_loot_probabilities
       AMDP OPTIONS CDS SESSION CLIENT DEPENDENT READ-ONLY
       IMPORTING VALUE(iv_quest_id)      TYPE ty_quest_id_hex
+                VALUE(iv_quest_level)     TYPE i
       EXPORTING VALUE(et_probabilities) TYPE tt_loot_probability.
 
   PROTECTED SECTION.
@@ -32,6 +33,11 @@ CLASS zcl_rpg_loot_amdp IMPLEMENTATION.
   METHOD get_loot_probabilities BY DATABASE PROCEDURE FOR HDB LANGUAGE SQLSCRIPT
     OPTIONS READ-ONLY
     USING zrpg_quest_loot zrpg_loot_items.
+    DECLARE lv_shift DOUBLE;
+    lv_shift := CASE WHEN :iv_quest_level >= 20 THEN 1.0
+                     WHEN :iv_quest_level <= 1 THEN 0
+                      ELSE :iv_quest_level / 20.0
+                 END;
     et_probabilities =
       select 'DROP_CHANCE' as dimension, 'ANY_LOOT' as value,
              30 as probability_pct
@@ -41,10 +47,10 @@ CLASS zcl_rpg_loot_amdp IMPLEMENTATION.
     select 'RARITY' as dimension,
            m.item_rarity as value,
            case m.item_rarity
-             when 'COMMON'    then 60
-             when 'UNCOMMON'  then 25
-             when 'RARE'      then 10
-             when 'LEGENDARY' then 5
+             when 'COMMON'    then cast( 60 - 40.0 * :lv_shift as integer )
+             when 'UNCOMMON'  then cast( 25 + ( 40.0 / 6 ) * :lv_shift as integer )
+             when 'RARE'      then cast( 10 + ( 80.0 / 6 ) * :lv_shift as integer )
+             when 'LEGENDARY' then cast( 5 + ( 120.0 / 6 ) * :lv_shift as integer )
              else 0
            end as probability_pct
       from zrpg_quest_loot as l

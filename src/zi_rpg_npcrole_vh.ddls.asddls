@@ -40,3 +40,8 @@ union select from I_Language
   key cast( 'STRANGER'    as abap.char(20) ) as NpcRole,
       cast( 'Mysterious Stranger' as abap.char(30) ) as NpcRoleName
 }
+union select from I_Language
+{
+  key cast( 'VILLAIN'    as abap.char(20) ) as NpcRole,
+      cast( 'Villain' as abap.char(30) ) as NpcRoleName
+}

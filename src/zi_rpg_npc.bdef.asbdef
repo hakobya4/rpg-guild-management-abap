@@ -8,17 +8,16 @@ authorization master ( global )
 etag master LastChangedAt
 {
   create;
-  update;
   delete;
 
-
-  field ( readonly, numbering : managed ) NpcId;
+  field ( readonly, numbering : managed  ) NpcId;
   field ( readonly ) CreatedAt, CreatedBy, LastChangedAt,
   LastChangedBy, LocalLastChangedAt;
-  field ( readonly ) FlavorText;
-  field ( mandatory ) NpcName, NpcRole, NpcRace;
-  // Calls the LLM via HTTP client to generate NPC.
-  action  generateNPC parameter ZI_RPG_NPC_ROLE_PARAM result [1] $self;
+  field ( readonly ) NpcName, NpcRole, NpcRace, FlavorText;
+
+  // Factory action: creates a brand-new NPC from race + role
+  static action generateNPC parameter ZI_RPG_NPC_ROLE_PARAM result [1] $self;
+
   mapping for zrpg_npc
     {
       NpcId              = npc_id;

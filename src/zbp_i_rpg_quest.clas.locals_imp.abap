@@ -525,7 +525,17 @@ CLASS lhc_Quest IMPLEMENTATION.
       RESULT DATA(quests).
 
 
+
     LOOP AT quests ASSIGNING FIELD-SYMBOL(<quest>).
+        DATA(lv_quest_type) = <quest>-QuestTypeName.
+        DATA(lv_is_hidden) = abap_true.
+        CASE lv_quest_type.
+         WHEN 'NPC'.
+          lv_is_hidden = abap_true.
+         WHEN OTHERS.
+          lv_is_hidden = abap_true.
+         ENDCASE.
+
       IF <quest>-QuestName IS INITIAL.
         APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
         APPEND VALUE #(
@@ -709,11 +719,17 @@ CLASS lhc_Quest IMPLEMENTATION.
     DATA(lo_loot) = NEW zcl_rpg_loot_amdp( ).
 
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
+    SELECT SINGLE required_level
+    FROM zrpg_quest
+    WHERE quest_id = @<key>-QuestId
+    INTO @DATA(lv_quest_level).
+
 
       DATA(lv_quest_id_hex) = CONV zcl_rpg_loot_amdp=>ty_quest_id_hex( <key>-QuestId ).
 
       lo_loot->get_loot_probabilities(
         EXPORTING iv_quest_id      = lv_quest_id_hex
+                  iv_quest_level   = lv_quest_level
         IMPORTING et_probabilities = DATA(lt_probabilities) ).
 
       IF lt_probabilities IS INITIAL.

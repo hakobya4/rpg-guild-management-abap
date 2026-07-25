@@ -54,7 +54,7 @@ CLASS zcl_rpg_npc_ai IMPLEMENTATION.
       RETURN.
     ENDIF.
     DATA(lv_npc_name_prompt) = |Generate a name for a character who's race is { iv_npc_race } | &&
-                       |and who works as a { iv_npc_role } in a fantasy adventurers' guild town.|.
+                       |and who works as a { iv_npc_role } in a fantasy adventurers' guild town. Please provide me only the name.|.
 
     DATA(ls_response) = VALUE ty_claude_response( ).
 
@@ -121,10 +121,10 @@ CLASS zcl_rpg_npc_ai IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    DATA(lv_prompt) = |Write a single short paragraph (2-3 sentences) of vivid | &&
+    DATA(lv_prompt) = |Write a single short paragraph (200 characters) of vivid | &&
                        |fantasy flavor text describing an NPC named { iv_npc_name } who's race is { iv_npc_race }| &&
                        |who works as a { iv_npc_role } in a fantasy adventurers' guild town. | &&
-                       |Write only the description itself, no preamble.|.
+                       |Write only the description itself, no preamble. Please provide me only the description.|.
 
     DATA(ls_response) = VALUE ty_claude_response( ).
 

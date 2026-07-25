@@ -1,95 +1,111 @@
 CLASS lhc_Npc DEFINITION INHERITING FROM cl_abap_behavior_handler.
   PRIVATE SECTION.
 
-
     METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
       IMPORTING REQUEST requested_authorizations FOR Npc RESULT result.
 
-
     METHODS generateNPC FOR MODIFY
       IMPORTING keys FOR ACTION Npc~generateNPC RESULT result.
+
 
 
 ENDCLASS.
 
 CLASS lhc_Npc IMPLEMENTATION.
 
+
   METHOD get_global_authorizations.
+    " Empty — BTP trial permits all operations by default
   ENDMETHOD.
 
-
-
   METHOD generateNPC.
-    "  call the LLM via the ABAP HTTP
+
+    DATA lt_create TYPE TABLE FOR CREATE zi_rpg_npc\\Npc.
+
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
 
-    DATA(lv_npc_role) = <key>-%param-NpcRole.
-      SELECT SINGLE npc_name, npc_role
-      FROM zrpg_npc
-      WHERE npc_id = @<key>-NpcId
-      INTO @DATA(npc_data).
+      DATA(lv_npc_role) = <key>-%param-NpcRole.
+      DATA(lv_npc_race) = <key>-%param-NpcRace.
 
-      IF sy-subrc <> 0.
-        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Npc.
+      IF lv_npc_role IS INITIAL OR lv_npc_race IS INITIAL.
+        APPEND VALUE #( %cid = <key>-%cid ) TO failed-Npc.
         APPEND VALUE #(
-          %tky                        = <key>-%tky
-          %action-generateNPC = if_abap_behv=>mk-on
-          %msg                        = new_message_with_text(
-                                          severity = if_abap_behv_message=>severity-error
-                                          text     = 'NPC not found.' )
+          %cid = <key>-%cid
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-error
+                   text     = 'Please select both a race and a role.' )
         ) TO reported-Npc.
         CONTINUE.
       ENDIF.
 
+
       TRY.
           DATA(lv_npc_name) = NEW zcl_rpg_npc_ai( )->generate_npc_name(
-                                    iv_npc_race = CONV #( npc_data-npc_name )
-                                    iv_npc_role = CONV #( npc_data-npc_role ) ).
-          IF lv_npc_name IS NOT INITIAL.
-            DATA(lv_flavor_text) = NEW zcl_rpg_npc_ai( )->generate_flavor_text(
+                                    iv_npc_race = CONV #( lv_npc_race )
+                                    iv_npc_role = CONV #( lv_npc_role ) ).
+
+          DATA(lv_flavor_text) = NEW zcl_rpg_npc_ai( )->generate_flavor_text(
                                     iv_npc_name = lv_npc_name
-                                    iv_npc_race = CONV #( npc_data-npc_name )
-                                    iv_npc_role = CONV #( npc_data-npc_role ) ).
-
-             MODIFY ENTITIES OF zi_rpg_npc IN LOCAL MODE
-            ENTITY Npc
-              UPDATE FIELDS ( NpcName FlavorText )
-              WITH VALUE #( ( NpcId      = <key>-NpcId
-                              NpcName    = lv_npc_name
-                              FlavorText = lv_flavor_text ) )
-            FAILED   DATA(fail_npc)
-            REPORTED DATA(rep_npc).
+                                    iv_npc_race = CONV #( lv_npc_race )
+                                    iv_npc_role = CONV #( lv_npc_role ) ).
 
           APPEND VALUE #(
-            %tky = <key>-%tky
+            %cid       = <key>-%cid
+            NpcName    = lv_npc_name
+            NpcRace    = lv_npc_race
+            NpcRole    = lv_npc_role
+            FlavorText = lv_flavor_text
+          ) TO lt_create.
+
+        CATCH cx_static_check INTO DATA(lx_error).
+          APPEND VALUE #( %cid = <key>-%cid ) TO failed-Npc.
+          APPEND VALUE #(
+            %cid = <key>-%cid
             %msg = new_message_with_text(
-                     severity = if_abap_behv_message=>severity-success
-                     text     = 'Flavor text generated.' )
+                     severity = if_abap_behv_message=>severity-error
+                     text     = |AI call failed: { lx_error->get_text( ) }| )
           ) TO reported-Npc.
-
-
-          ENDIF.
-       CATCH cx_static_check INTO DATA(lx_error).
-          APPEND VALUE #( %tky = <key>-%tky ) TO failed-Npc.
-          APPEND VALUE #(
-            %tky                        = <key>-%tky
-            %action-generateNPC = if_abap_behv=>mk-on
-            %msg                        = new_message_with_text(
-                                            severity = if_abap_behv_message=>severity-error
-                                            text     = |AI call failed: { lx_error->get_text( ) }| )
-          ) TO reported-Npc.
-
       ENDTRY.
+
     ENDLOOP.
+
+    CHECK lt_create IS NOT INITIAL.
+
+    MODIFY ENTITIES OF zi_rpg_npc IN LOCAL MODE
+      ENTITY Npc
+        CREATE FIELDS ( NpcName NpcRace NpcRole FlavorText )
+        WITH lt_create
+      MAPPED   DATA(ls_create_mapped)
+      FAILED   DATA(failed_create)
+      REPORTED DATA(reported_create).
+
+    failed-Npc   = CORRESPONDING #( BASE ( failed-Npc ) failed_create-Npc ).
+    reported-Npc = CORRESPONDING #( BASE ( reported-Npc ) reported_create-Npc ).
 
     READ ENTITIES OF zi_rpg_npc IN LOCAL MODE
       ENTITY Npc ALL FIELDS
-        WITH CORRESPONDING #( keys )
-      RESULT DATA(result_npcs).
+        WITH VALUE #( FOR ls_m IN ls_create_mapped-npc ( %tky = CORRESPONDING #( ls_m-%pky ) ) )
+      RESULT DATA(created_npcs).
 
-    result = VALUE #( FOR npc IN result_npcs
-                      ( %tky   = npc-%tky
-                        %param = CORRESPONDING #( npc ) ) ).
+    LOOP AT ls_create_mapped-npc INTO DATA(ls_mapped).
+      READ TABLE created_npcs WITH KEY NpcId = ls_mapped-%pky-NpcId INTO DATA(ls_created_npc).
+      APPEND VALUE #(
+        %cid   = ls_mapped-%cid
+        %param = COND #( WHEN sy-subrc = 0
+                          THEN CORRESPONDING #( ls_created_npc )
+                          ELSE VALUE #( NpcId = ls_mapped-%pky-NpcId ) )
+      ) TO result.
+
+
+      APPEND VALUE #(
+        %cid = ls_mapped-%cid
+        %msg = new_message_with_text(
+                 severity = if_abap_behv_message=>severity-success
+                 text     = 'NPC generated.' )
+      ) TO reported-Npc.
+    ENDLOOP.
+
   ENDMETHOD.
 
 ENDCLASS.
+

@@ -50,6 +50,7 @@ etag master LastChangedAt
       QuestId            = quest_id;
       QuestName          = quest_name;
       QuestTypeName      = quest_type_name;
+      NpcId              = npc_id;
       Description        = description;
       RequiredLevel      = required_level;
       RequiredStat       = required_stat;

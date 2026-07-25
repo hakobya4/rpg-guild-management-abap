@@ -6,7 +6,9 @@
 "ZRPG_NPC"
 ],
 "ASSOCIATED":
-[],
+[
+"ZI_RPG_QUEST"
+],
 "BASE":
 [],
 "ANNO_REF":

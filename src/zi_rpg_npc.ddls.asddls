@@ -4,6 +4,7 @@
 @Metadata.ignorePropagatedAnnotations: true
 define root view entity ZI_RPG_NPC
   as select from zrpg_npc
+  association [0..*] to ZI_RPG_QUEST as _Quest on _Quest.QuestTypeName = 'NPC'
 {
   key npc_id                as NpcId,
       npc_name              as NpcName,
@@ -19,5 +20,7 @@ define root view entity ZI_RPG_NPC
       @Semantics.user.lastChangedBy: true
       last_changed_by       as LastChangedBy,
       @Semantics.systemDateTime.localInstanceLastChangedAt: true
-      local_last_changed_at as LocalLastChangedAt
+      local_last_changed_at as LocalLastChangedAt,
+      
+      _Quest
 }

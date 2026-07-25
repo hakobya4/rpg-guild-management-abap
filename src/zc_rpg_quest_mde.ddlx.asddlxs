@@ -56,9 +56,16 @@ annotate view ZC_RPG_QUEST with
   @UI.identification: [{ position: 30 }]
   @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 30, label: 'Status' }]
   Status;
-
-  @UI.lineItem:       [{ position: 40, label: 'Required Level' }]
+  
+  @UI.lineItem:       [{ position: 40, label: 'Quest Type' }]
+  @UI.selectionField: [{ position: 40 }]
   @UI.identification: [{ position: 40 }]
+  @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 40, label: 'Quest Type' }]
+  @UI.hidden: #(lv_is_hidden)
+  NpcId;
+
+  @UI.lineItem:       [{ position: 50, label: 'Required Level' }]
+  @UI.identification: [{ position: 50 }]
   @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 10, label: 'Required Level' }]
   RequiredLevel;
 
