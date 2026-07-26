@@ -41,8 +41,10 @@ etag master LastChangedAt
   action previewLootOdds result [0..*] ZI_RPG_LOOT_ODDS;
 
 
-  validation validateQuestValues on save { create; field RequiredLevel, XpReward, GoldReward; }
+  validation validateQuestValues on save { create; field RequiredLevel, XpReward, GoldReward, QuestTypeName, NpcId; }
   determination setInitialStatus on modify { create; }
+  action ( features : instance ) generateQuestDetails result [1] $self;
+
 
 
   mapping for zrpg_quest

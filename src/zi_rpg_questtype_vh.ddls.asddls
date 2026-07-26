@@ -29,3 +29,8 @@ union select from I_Language
   key cast( 'MISCELLANEOUS' as abap.char(20) ) as QuestTypeName,
       cast( 'Miscellaneous' as abap.char(30) ) as QuestTypeNames
 }
+union select from I_Language
+{
+  key cast( 'EXPEDITION' as abap.char(20) ) as QuestTypeName,
+      cast( 'Expedition' as abap.char(30) ) as QuestTypeNames
+}

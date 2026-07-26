@@ -167,6 +167,8 @@ CLASS lhc_Quest DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR ACTION Quest~giveupQuest RESULT result.
     METHODS previewLootOdds FOR MODIFY
       IMPORTING keys FOR ACTION Quest~previewLootOdds RESULT result.
+    METHODS generateQuestDetails FOR MODIFY
+      IMPORTING keys FOR ACTION Quest~generateQuestDetails RESULT result.
 
 ENDCLASS.
 
@@ -179,7 +181,7 @@ CLASS lhc_Quest IMPLEMENTATION.
 
   METHOD get_instance_features.
     READ ENTITIES OF zi_rpg_quest IN LOCAL MODE
-      ENTITY Quest FIELDS ( Status QuestTypeName ) WITH CORRESPONDING #( keys )
+      ENTITY Quest FIELDS ( Status QuestTypeName NpcId ) WITH CORRESPONDING #( keys )
       RESULT DATA(quests).
 
     result = VALUE #( FOR <q> IN quests
@@ -188,6 +190,10 @@ CLASS lhc_Quest IMPLEMENTATION.
                                         THEN if_abap_behv=>fc-o-enabled
                                         ELSE if_abap_behv=>fc-o-disabled )
         %action-giveupQuest = COND #( WHEN <q>-Status = c_status_in_progress
+                                      THEN if_abap_behv=>fc-o-enabled
+                                      ELSE if_abap_behv=>fc-o-disabled )
+        %action-generateQuestDetails = COND #( WHEN ( ( <q>-QuestTypeName = 'NPC' AND <q>-NpcId IS NOT INITIAL )
+                                                     OR <q>-QuestTypeName = 'EXPEDITION' )
                                       THEN if_abap_behv=>fc-o-enabled
                                        ELSE if_abap_behv=>fc-o-disabled ) ) ).
   ENDMETHOD.
@@ -520,7 +526,7 @@ CLASS lhc_Quest IMPLEMENTATION.
 
     READ ENTITIES OF zi_rpg_quest IN LOCAL MODE
       ENTITY Quest
-        FIELDS ( RequiredLevel XpReward GoldReward QuestName QuestTypeName RequiredStat DifficultyClass )
+        FIELDS ( RequiredLevel XpReward GoldReward QuestName QuestTypeName RequiredStat DifficultyClass NpcId )
         WITH CORRESPONDING #( keys )
       RESULT DATA(quests).
 
@@ -547,6 +553,44 @@ CLASS lhc_Quest IMPLEMENTATION.
                                    severity = if_abap_behv_message=>severity-error
                                    text     = 'Please choose a quest type.' )
           %element-QuestTypeName = if_abap_behv=>mk-on
+        ) TO reported-Quest.
+      ENDIF.
+
+      IF <quest>-QuestTypeName = 'NPC'.
+        IF <quest>-NpcId IS INITIAL.
+          APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
+          APPEND VALUE #(
+            %tky                = <quest>-%tky
+            %msg                = new_message_with_text(
+                                     severity = if_abap_behv_message=>severity-error
+                                     text     = 'Please select an NPC to own this quest.' )
+            %element-NpcId = if_abap_behv=>mk-on
+          ) TO reported-Quest.
+        ELSE.
+          SELECT SINGLE @abap_true
+            FROM zrpg_npc
+            WHERE npc_id = @<quest>-NpcId
+            INTO @DATA(lv_npc_exists).
+
+          IF lv_npc_exists <> abap_true.
+            APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
+            APPEND VALUE #(
+              %tky                = <quest>-%tky
+              %msg                = new_message_with_text(
+                                       severity = if_abap_behv_message=>severity-error
+                                       text     = 'Selected NPC does not exist.' )
+              %element-NpcId = if_abap_behv=>mk-on
+            ) TO reported-Quest.
+          ENDIF.
+        ENDIF.
+      ELSEIF <quest>-NpcId IS NOT INITIAL.
+        APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
+        APPEND VALUE #(
+          %tky                = <quest>-%tky
+          %msg                = new_message_with_text(
+                                   severity = if_abap_behv_message=>severity-error
+                                   text     = 'An NPC owner can only be set when the quest type is NPC.' )
+          %element-NpcId = if_abap_behv=>mk-on
         ) TO reported-Quest.
       ENDIF.
 
@@ -711,10 +755,10 @@ CLASS lhc_Quest IMPLEMENTATION.
     DATA(lo_loot) = NEW zcl_rpg_loot_amdp( ).
 
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
-    SELECT SINGLE required_level
-    FROM zrpg_quest
-    WHERE quest_id = @<key>-QuestId
-    INTO @DATA(lv_quest_level).
+      SELECT SINGLE required_level
+      FROM zrpg_quest
+      WHERE quest_id = @<key>-QuestId
+      INTO @DATA(lv_quest_level).
 
 
       DATA(lv_quest_id_hex) = CONV zcl_rpg_loot_amdp=>ty_quest_id_hex( <key>-QuestId ).
@@ -758,6 +802,116 @@ CLASS lhc_Quest IMPLEMENTATION.
                         %param = CORRESPONDING #( quest ) ) ).
 
   ENDMETHOD.
+
+  METHOD generateQuestDetails.
+
+    DATA quest_updates TYPE TABLE FOR UPDATE zi_rpg_quest\\Quest.
+    DATA: BEGIN OF ls_npc,
+            npc_name    TYPE zrpg_npc-npc_name,
+            npc_race    TYPE zrpg_npc-npc_race,
+            npc_role    TYPE zrpg_npc-npc_role,
+            flavor_text TYPE zrpg_npc-flavor_text,
+          END OF ls_npc.
+
+    READ ENTITIES OF zi_rpg_quest IN LOCAL MODE
+      ENTITY Quest FIELDS ( QuestTypeName NpcId )
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(quests).
+
+    LOOP AT quests ASSIGNING FIELD-SYMBOL(<quest>).
+      CLEAR ls_npc.
+
+
+      IF <quest>-QuestTypeName = 'NPC' AND <quest>-NpcId IS NOT INITIAL.
+        SELECT SINGLE npc_name, npc_race, npc_role, flavor_text
+          FROM zrpg_npc
+          WHERE npc_id = @<quest>-NpcId
+          INTO @ls_npc.
+
+        IF sy-subrc <> 0.
+          APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
+          APPEND VALUE #(
+            %tky = <quest>-%tky
+            %msg = new_message_with_text(
+                     severity = if_abap_behv_message=>severity-error
+                     text     = 'Selected NPC does not exist.' )
+          ) TO reported-Quest.
+          CONTINUE.
+        ENDIF.
+
+      ELSEIF <quest>-QuestTypeName <> 'EXPEDITION'.
+        APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
+        APPEND VALUE #(
+          %tky = <quest>-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-error
+          text     = 'Set the quest type to NPC (with an NPC selected) or Expedition before generating quest details.' )
+        ) TO reported-Quest.
+        CONTINUE.
+      ENDIF.
+
+      TRY.
+          DATA(ls_generated) = NEW zcl_rpg_quest_ai( )->generate_quest_details(
+                                      iv_npc_name        = CONV #( ls_npc-npc_name )
+                                      iv_npc_race        = CONV #( ls_npc-npc_race )
+                                      iv_npc_role        = CONV #( ls_npc-npc_role )
+                                      iv_npc_flavor_text = CONV #( ls_npc-flavor_text ) ).
+
+          APPEND VALUE #(
+            %tky             = <quest>-%tky
+            QuestName        = ls_generated-quest_name
+            Description      = ls_generated-description
+            RequiredStat     = ls_generated-required_stat
+            DifficultyClass  = ls_generated-difficulty_class
+            RequiredLevel    = ls_generated-required_level
+            XpReward         = ls_generated-xp_reward
+            GoldReward       = ls_generated-gold_reward
+          ) TO quest_updates.
+
+        CATCH cx_static_check INTO DATA(lx_error).
+          APPEND VALUE #( %tky = <quest>-%tky ) TO failed-Quest.
+          APPEND VALUE #(
+            %tky = <quest>-%tky
+            %msg = new_message_with_text(
+                     severity = if_abap_behv_message=>severity-error
+                     text     = |AI call failed: { lx_error->get_text( ) }| )
+          ) TO reported-Quest.
+      ENDTRY.
+
+    ENDLOOP.
+
+    IF quest_updates IS NOT INITIAL.
+      MODIFY ENTITIES OF zi_rpg_quest IN LOCAL MODE
+        ENTITY Quest
+          UPDATE FIELDS ( QuestName Description RequiredStat DifficultyClass RequiredLevel XpReward GoldReward )
+          WITH quest_updates
+        REPORTED DATA(reported_update)
+        FAILED   DATA(failed_update).
+
+      reported-Quest = CORRESPONDING #( BASE ( reported-Quest ) reported_update-Quest ).
+      failed-Quest   = CORRESPONDING #( BASE ( failed-Quest ) failed_update-Quest ).
+
+      LOOP AT quest_updates INTO DATA(ls_updated).
+        APPEND VALUE #(
+          %tky = ls_updated-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-success
+                   text     = 'Quest details generated by AI.' )
+        ) TO reported-Quest.
+      ENDLOOP.
+    ENDIF.
+
+    READ ENTITIES OF zi_rpg_quest IN LOCAL MODE
+      ENTITY Quest ALL FIELDS
+        WITH CORRESPONDING #( keys )
+      RESULT DATA(result_quests_ai).
+
+    result = VALUE #( FOR quest IN result_quests_ai
+                      ( %tky   = quest-%tky
+                        %param = CORRESPONDING #( quest ) ) ).
+
+  ENDMETHOD.
+
   METHOD resolve_check.
 
     rs_check-modifier = NEW zcl_rpg_stat_check( )->zif_rpg_quest_resolution~get_check_modifier(
@@ -917,8 +1071,3 @@ CLASS lhc_Quest IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-
-
-
-
-

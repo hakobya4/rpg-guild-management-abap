@@ -35,7 +35,7 @@ annotate view ZC_RPG_EXPEDITION with
 
   @Consumption.valueHelpDefinition: [{
     entity: {
-      name:    'ZC_RPG_QUEST',
+      name:    'ZI_RPG_EXPEDITION_QUEST_VH',
       element: 'QuestId'
     },
     additionalBinding: [{

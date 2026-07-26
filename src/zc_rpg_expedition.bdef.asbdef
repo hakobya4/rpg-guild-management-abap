@@ -17,6 +17,11 @@ define behavior for ZC_RPG_EXPEDITION alias Expedition
   use action resolveExpedition;
 
   use association _Member { create; with draft; }
+
+  side effects
+  {
+    field QuestId affects $self;
+  }
 }
 
 define behavior for ZC_RPG_EXP_MEMBERS alias Member

@@ -8,7 +8,7 @@ define root view entity ZI_RPG_QUEST
 
   //  " Shows which adventurer owns this quest
   association [0..1] to ZI_RPG_ADVENTURER as _Adventurer on $projection.AdventurerId = _Adventurer.AdventurerId
-  association [0..*] to ZI_RPG_QUEST_LOOT as _Loot       on $projection.QuestId = _Loot.QuestId
+  association [0..*] to ZI_RPG_QUEST_LOOT as _Loot       on $projection.QuestId = _Loot.QuestId  
 
 {
   key quest_id              as QuestId,

@@ -8,7 +8,7 @@ authorization master ( global )
 etag master LastChangedAt
 {
   create;
-  delete;
+  delete ( precheck );
 
   field ( readonly, numbering : managed  ) NpcId;
   field ( readonly ) CreatedAt, CreatedBy, LastChangedAt,

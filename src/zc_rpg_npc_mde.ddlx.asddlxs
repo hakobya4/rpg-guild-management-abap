@@ -43,6 +43,13 @@ annotate entity ZC_RPG_NPC with
   @UI.fieldGroup:     [{ qualifier: 'NpcDetails', position: 30, label: 'Flavor Text' }]
   FlavorText;
 
+  @UI.lineItem:       [{ position: 35, label: 'Available Quests' },
+                     { qualifier: 'Embedded', position: 35, label: 'AvailableQuests' }]
+  @UI.identification: [{ position: 35 }]
+  @UI.fieldGroup:     [{ qualifier: 'NpcDetails', position: 35, label: 'Available Quests' }]
+  NumberOfQuests;
+
+
   @UI.lineItem: [{
    position:   40,
    label:      'Generate NPC',

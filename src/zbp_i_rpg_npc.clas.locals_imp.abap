@@ -7,7 +7,8 @@ CLASS lhc_Npc DEFINITION INHERITING FROM cl_abap_behavior_handler.
     METHODS generateNPC FOR MODIFY
       IMPORTING keys FOR ACTION Npc~generateNPC RESULT result.
 
-
+    METHODS precheck_delete FOR PRECHECK
+      IMPORTING keys FOR DELETE Npc.
 
 ENDCLASS.
 
@@ -16,6 +17,25 @@ CLASS lhc_Npc IMPLEMENTATION.
 
   METHOD get_global_authorizations.
     " Empty — BTP trial permits all operations by default
+  ENDMETHOD.
+
+  METHOD precheck_delete.
+    LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
+      SELECT SINGLE quest_name
+        FROM zrpg_quest
+        WHERE npc_id = @<key>-NpcId
+        INTO @DATA(lv_quest_name).
+
+      IF sy-subrc = 0.
+        APPEND VALUE #( %tky = <key>-%tky ) TO failed-Npc.
+        APPEND VALUE #(
+          %tky = <key>-%tky
+          %msg = new_message_with_text(
+                   severity = if_abap_behv_message=>severity-error
+                   text     = |This NPC owns quest '{ lv_quest_name }' and cannot be deleted until that quest is deleted or reassigned.| )
+        ) TO reported-Npc.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD generateNPC.

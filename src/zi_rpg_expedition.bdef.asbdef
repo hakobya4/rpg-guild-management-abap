@@ -24,15 +24,15 @@ early numbering
   }
   association _Member { create; with draft; }
   field ( readonly ) ExpeditionId, Status, RequiredStat, RequiredLevel,
-                     DifficultyClass, XpReward, Successes,
-                     CreatedAt, CreatedBy, LastChangedAt, LastChangedBy, LocalLastChangedAt;
+  DifficultyClass, XpReward, Successes,
+  CreatedAt, CreatedBy, LastChangedAt, LastChangedBy, LocalLastChangedAt;
   field ( mandatory ) ExpeditionName, QuestId;
   // Rolls every party member's check against the quest DC; majority wins
   action resolveExpedition result [1] $self;
   validation validateQuest on save { create; field QuestId; }
   determination setInitialStatus on modify { create; }
   // Copies required stat / level / DC / XP reward from the chosen quest
-  determination deriveQuestReqs on modify { field QuestId; }
+  determination deriveQuestReqs on modify { create; field QuestId; }
   mapping for zrpg_expedition
     {
       ExpeditionId       = expedition_id;
@@ -63,7 +63,7 @@ early numbering
 
 
   field ( readonly ) MemberId, ExpeditionId, MemberRoll, MemberTotal,
-                     MemberPassed, XpGained, LocalLastChangedAt;
+  MemberPassed, XpGained, LocalLastChangedAt;
   field ( mandatory : create ) AdventurerId;
 
   // Party rules: size 1-4, no duplicate adventurer, level requirement met

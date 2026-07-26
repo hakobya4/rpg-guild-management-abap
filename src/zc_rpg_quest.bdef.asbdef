@@ -16,11 +16,14 @@ define behavior for ZC_RPG_QUEST alias Quest
   use action previewLootOdds;
   use action completeQuest;
   use action giveupQuest;
+  use action generateQuestDetails;
+
   side effects
   {
     action completeQuest affects entity _Adventurer;
     action giveupQuest affects entity _Adventurer;
-    field QuestTypeName affects field NpcId;
+    field QuestTypeName affects field NpcId, $self;
+    field NpcId affects $self;
 
   }
 }

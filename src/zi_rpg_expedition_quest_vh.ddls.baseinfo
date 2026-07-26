@@ -3,13 +3,10 @@
 {
 "FROM":
 [
-"ZI_RPG_QUEST",
-"ZRPG_NPC"
+"ZRPG_QUEST"
 ],
 "ASSOCIATED":
-[
-"ZI_RPG_QUEST"
-],
+[],
 "BASE":
 [],
 "ANNO_REF":

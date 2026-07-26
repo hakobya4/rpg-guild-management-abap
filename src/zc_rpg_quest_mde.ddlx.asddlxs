@@ -56,10 +56,29 @@ annotate view ZC_RPG_QUEST with
   @UI.identification: [{ position: 30 }]
   @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 30, label: 'Status' }]
   Status;
-  
+
+  @UI.lineItem:       [{ position: 50, label: 'Description' }]
+  @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 50, label: 'Description' }]
+  Description;
+
+
+  @Consumption.valueHelpDefinition: [{
+   entity: {
+     name:    'ZC_RPG_NPC',
+     element: 'NpcId'
+   },
+   additionalBinding: [{
+     usage:        #RESULT
+   }],
+   useForValidation: true
+  }]
+
   @UI.lineItem:       [{ position: 40, label: 'NPC' }]
   @UI.selectionField: [{ position: 40 }]
-  @UI.identification: [{ position: 40 } ]
+  @UI.identification: [
+  { position: 40 },
+  { position: 45, label: 'Generate Quest (AI)', type: #FOR_ACTION, dataAction: 'generateQuestDetails' }
+  ]
   @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 40, label: 'NPC' }]
   NpcId;
 
@@ -99,9 +118,7 @@ annotate view ZC_RPG_QUEST with
   @UI.fieldGroup:     [{ qualifier: 'Requirements', position: 50, label: 'Gold Reward' }]
   GoldReward;
 
-  @UI.lineItem:       [{ position: 90, label: 'Description' }]
-  @UI.fieldGroup:     [{ qualifier: 'QuestDetails', position: 40, label: 'Description' }]
-  Description;
+
 
   @UI.lineItem: [{ type:       #FOR_ACTION,
                  dataAction: 'completeQuest',

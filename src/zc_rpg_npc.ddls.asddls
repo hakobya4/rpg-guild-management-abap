@@ -10,6 +10,7 @@ define root view entity ZC_RPG_NPC
       NpcRace,
       NpcRole,
       FlavorText,
+      NumberOfQuests,
       CreatedAt,
       CreatedBy,
       LastChangedAt,
@@ -17,4 +18,5 @@ define root view entity ZC_RPG_NPC
       LocalLastChangedAt,
       
       _Quest : redirected to ZC_RPG_QUEST
+
 }
