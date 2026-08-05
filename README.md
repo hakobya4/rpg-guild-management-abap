@@ -52,11 +52,17 @@ Stack: ABAP RAP (managed + unmanaged BOs) · CDS views/annotations · AMDP (SQLS
 
 ## Screenshots
 
-<img width="400" height="250" alt="Application" src="https://github.com/user-attachments/assets/fb82e45f-7d9f-4d1e-ba18-3a2d1198cf39" />
-<img width="400" height="250" alt="Adventurer" src="https://github.com/user-attachments/assets/2b363f25-102a-4692-a472-3f32a1fbf2f6" />
+<img width="400" height="250" alt="Adventurers" src="https://github.com/user-attachments/assets/b332cabb-0773-4764-b6b7-2688e4bc54f9"/>
+<img width="400" height="250" alt="Adventurer" src="https://github.com/user-attachments/assets/ff43fc3f-2e2c-4222-8469-08adfad8d0f2" />
 <img width="400" height="250" alt="Classes" src="https://github.com/user-attachments/assets/39850a48-6c1b-42ed-bf68-2f6e52e6057d" />
-<img width="400" height="250" alt="Quests and Marketplace" src="https://github.com/user-attachments/assets/21200711-8035-464c-8981-ed067864128d" />
+<img width="400" height="250" alt="Creating Quests" src="https://github.com/user-attachments/assets/85deac78-1675-4368-b92b-1c7b025aad32"/>
+<img width="400" height="250" alt="Available Quests" src="https://github.com/user-attachments/assets/dcebd141-56a3-451a-941e-5819296588d8" />
+<img width="400" height="250" alt="My Quests"  src="https://github.com/user-attachments/assets/6f29ab1e-3368-4554-99ea-f9d3a5bc45fe" />
+<img width="400" height="250" alt="AI Generated Quest" src="https://github.com/user-attachments/assets/24c48e0f-cdf3-40bb-8ec3-1328d2d549a6" />
 <img width="400" height="250" alt="Buy Potion" src="https://github.com/user-attachments/assets/5ab44151-4719-402a-a6a0-641294dc8f19" />
+<img width="400" height="250" alt="Inventory and Marketplace" src="https://github.com/user-attachments/assets/07997dbe-fbaa-49dd-95ad-64f06d75565b" />
+<img  width="400" height="250" alt="Generate NPC AI" src="https://github.com/user-attachments/assets/78a401ad-b14b-48bb-a1c7-c7430fcf7cac" />
+<img width="400" height="250" alt="NPCs" src="https://github.com/user-attachments/assets/38fa327d-93c0-4d40-9dbe-bf94c078a0db" />
 <img width="400" height="250" alt="No input error quest" src="https://github.com/user-attachments/assets/cb02b24c-6a9f-416a-933c-72b22d407611" />
 
 ## Technical_Requirements
