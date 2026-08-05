@@ -15,7 +15,7 @@ Stack: ABAP RAP (managed + unmanaged BOs) · CDS views/annotations · AMDP (SQLS
 - [Dependencies](#Dependencies)
 
 ## Features
-Adventurers
+### Adventurers
 
 - Create an adventurer with a class and 6 D&D-style ability scores (Strength, Dexterity, Constitution, Intelligence, Wisdom, Charisma), rolled the classic way - 4d6, drop the lowest, per stat.
 - Level up from XP, join and leave a guild.
