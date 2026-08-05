@@ -120,16 +120,13 @@ CLASS zcl_rpg_quest_ai IMPLEMENTATION.
       CHANGING  data = ls_response ).
 
     IF lines( ls_response-content ) = 0.
-      " TEMPORARY DEBUG: surface exactly what came back instead of
-      " silently returning an empty quest.
       rs_quest-quest_name = |[DEBUG] body: { lv_response_json }|.
       RETURN.
     ENDIF.
 
     DATA(lv_quest_json) = ls_response-content[ 1 ]-text.
 
-    " The model sometimes wraps its JSON in a code fence despite instructions not to -
-    " strip it defensively rather than fail the whole action over formatting.
+
     REPLACE ALL OCCURRENCES OF '```json' IN lv_quest_json WITH ''.
     REPLACE ALL OCCURRENCES OF '```'     IN lv_quest_json WITH ''.
     CONDENSE lv_quest_json.

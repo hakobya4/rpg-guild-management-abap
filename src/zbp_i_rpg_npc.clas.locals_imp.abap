@@ -60,21 +60,17 @@ CLASS lhc_Npc IMPLEMENTATION.
 
 
       TRY.
-          DATA(lv_npc_name) = NEW zcl_rpg_npc_ai( )->generate_npc_name(
+          DATA(ls_generated) = NEW zcl_rpg_npc_ai( )->generate_npc(
                                     iv_npc_race = CONV #( lv_npc_race )
                                     iv_npc_role = CONV #( lv_npc_role ) ).
 
-          DATA(lv_flavor_text) = NEW zcl_rpg_npc_ai( )->generate_flavor_text(
-                                    iv_npc_name = lv_npc_name
-                                    iv_npc_race = CONV #( lv_npc_race )
-                                    iv_npc_role = CONV #( lv_npc_role ) ).
 
           APPEND VALUE #(
             %cid       = <key>-%cid
-            NpcName    = lv_npc_name
+            NpcName    = ls_generated-npc_name
             NpcRace    = lv_npc_race
             NpcRole    = lv_npc_role
-            FlavorText = lv_flavor_text
+            FlavorText = ls_generated-flavor_text
           ) TO lt_create.
 
         CATCH cx_static_check INTO DATA(lx_error).

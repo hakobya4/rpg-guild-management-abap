@@ -193,7 +193,7 @@ CLASS lhc_Quest IMPLEMENTATION.
                                       THEN if_abap_behv=>fc-o-enabled
                                       ELSE if_abap_behv=>fc-o-disabled )
         %action-generateQuestDetails = COND #( WHEN ( ( <q>-QuestTypeName = 'NPC' AND <q>-NpcId IS NOT INITIAL )
-                                                     OR <q>-QuestTypeName = 'EXPEDITION' )
+                                                     OR <q>-QuestTypeName = 'EXPEDITION' AND <q>-%is_draft = if_abap_behv=>mk-on )
                                       THEN if_abap_behv=>fc-o-enabled
                                        ELSE if_abap_behv=>fc-o-disabled ) ) ).
   ENDMETHOD.

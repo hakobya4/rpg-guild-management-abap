@@ -80,6 +80,9 @@ CLASS lhc_Adventurer DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR ACTION Adventurer~quitGuild RESULT result.
     METHODS rollStats FOR MODIFY
       IMPORTING keys FOR ACTION Adventurer~rollStats RESULT result.
+    " Roll Stats is only enabled while the adventurer is still a draft
+    METHODS get_instance_features FOR INSTANCE FEATURES
+      IMPORTING keys REQUEST requested_features FOR Adventurer RESULT result.
     METHODS precheck_delete FOR PRECHECK
       IMPORTING keys FOR DELETE Adventurer.
     METHODS validateOwnership FOR VALIDATE ON SAVE
@@ -91,6 +94,15 @@ CLASS lhc_Adventurer IMPLEMENTATION.
 
   METHOD get_global_authorizations.
   ENDMETHOD.
+
+  METHOD get_instance_features.
+    result = VALUE #( FOR <key> IN keys
+      ( %tky              = <key>-%tky
+        %action-rollStats = COND #( WHEN <key>-%tky-%is_draft = abap_true
+                                     THEN if_abap_behv=>fc-o-enabled
+                                     ELSE if_abap_behv=>fc-o-disabled ) ) ).
+  ENDMETHOD.
+
 
   METHOD initAdventurer.
 
@@ -871,17 +883,17 @@ text     = |{ adv_data-adventurer_name } is already a member of { guild_data-gui
   ENDMETHOD.
 
   METHOD rollStats.
-        READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
-      ENTITY Adventurer
-        FIELDS ( CreatedBy )
-        WITH CORRESPONDING #( keys )
-      RESULT DATA(adventurers).
+    READ ENTITIES OF zi_rpg_adventurer IN LOCAL MODE
+  ENTITY Adventurer
+    FIELDS ( CreatedBy )
+    WITH CORRESPONDING #( keys )
+  RESULT DATA(adventurers).
 
     DATA updates TYPE TABLE FOR UPDATE zi_rpg_adventurer\\Adventurer.
 
     LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
 
-    " Only the owning player may act for this adventurer
+      " Only the owning player may act for this adventurer
       READ TABLE adventurers ASSIGNING FIELD-SYMBOL(<owner_check>)
         WITH KEY %tky = <key>-%tky.
       IF sy-subrc = 0 AND zcl_rpg_ownership=>is_owner( <owner_check>-CreatedBy ) = abap_false.
